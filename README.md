@@ -13,9 +13,9 @@ binaries. Several hosts sit in one sidebar; each VM gets the same slim tab bar.
 
 ## ⬇️ Download
 
-[![Download LabDock for macOS](https://img.shields.io/badge/Download-LabDock_2.0_%281%29_for_macOS-2ea44f?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/bestonehxh/LabDock/releases/latest)
+[![Download LabDock for macOS](https://img.shields.io/badge/Download-LabDock_2.0_%282%29_for_macOS-2ea44f?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/bestonehxh/LabDock/releases/latest)
 
-**[Get the latest release →](https://github.com/bestonehxh/LabDock/releases/latest)** — download `LabDock-2.0-1.zip`, unzip, and drag **LabDock.app** into `Applications`.
+**[Get the latest release →](https://github.com/bestonehxh/LabDock/releases/latest)** — download `LabDock-2.0-2.zip`, unzip, and drag **LabDock.app** into `Applications`.
 
 > The build is not notarized, so macOS will warn on first launch —
 > right-click the app and choose **Open**, or allow it in System Settings › Privacy & Security.

@@ -18,7 +18,7 @@ enum Main {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // In-app updater (from SheepTerm via LabDC, 9 Oct 2026): checks ~5 s after launch, then daily.
-        AppUpdater.shared.start()
+        AppUpdater.start()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }

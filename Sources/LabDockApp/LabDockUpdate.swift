@@ -23,5 +23,13 @@ extension UpdateConfig {
 enum AppUpdater {
     /// Install & Relaunch is the only question: LabDock does not ask on ⌘Q either (open consoles
     /// simply close, and the VMs keep running on their hosts), so no extra quit hook.
-    static let shared = Updater(config: .labDock, hooks: UpdateHooks())
+    /// The alerts are centred (Update/UpdateAlertPanel.swift): a plain NSAlert left-aligns them.
+    static let shared = Updater(config: .labDock, hooks: UpdateHooks(presenter: CenteredUpdatePresenter()))
+
+    /// Automatic checks are always on (the user, 9 Oct 2026: no option for it), so a stored
+    /// "off" from an earlier build is cleared before the updater reads it.
+    static func start() {
+        UserDefaults.standard.removeObject(forKey: UpdateCore.autoCheckKey)
+        shared.start()
+    }
 }
