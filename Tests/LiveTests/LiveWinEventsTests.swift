@@ -2,13 +2,13 @@ import Foundation
 import Testing
 import VimClient
 
-/// Windows events of the last PADDOCK_MINUTES minutes (System + Winlogon + Tools logs), to see
+/// Windows events of the last LABDOCK_MINUTES minutes (System + Winlogon + Tools logs), to see
 /// what locked the session.
 @Test func liveWindowsRecentEvents() async throws {
     let env = ProcessInfo.processInfo.environment
-    guard let host = env["PADDOCK_HOST"], let user = env["PADDOCK_USER"], let pass = env["PADDOCK_PASS"],
-          let name = env["PADDOCK_VM"], let guser = env["PADDOCK_GUEST_USER"], let gpass = env["PADDOCK_GUEST_PASS"] else { return }
-    let minutes = env["PADDOCK_MINUTES"] ?? "12"
+    guard let host = env["LABDOCK_HOST"], let user = env["LABDOCK_USER"], let pass = env["LABDOCK_PASS"],
+          let name = env["LABDOCK_VM"], let guser = env["LABDOCK_GUEST_USER"], let gpass = env["LABDOCK_GUEST_PASS"] else { return }
+    let minutes = env["LABDOCK_MINUTES"] ?? "12"
     let s = VimSession(host: host, username: user, password: pass, expectedThumbprint: nil)
     try await s.login()
     guard let vm = try await s.listVMs().first(where: { $0.name == name }) else { return }

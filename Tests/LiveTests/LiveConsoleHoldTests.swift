@@ -3,12 +3,12 @@ import MKSClient
 import Testing
 import VimClient
 
-/// Holds a console open on a static screen for PADDOCK_HOLD seconds (default 60) and fails if it
+/// Holds a console open on a static screen for LABDOCK_HOLD seconds (default 60) and fails if it
 /// drops: the idle-timeout regression the owner hit ("Socket is not connected" after a pause).
 @Test func liveConsoleHold() async throws {
     let env = ProcessInfo.processInfo.environment
-    guard let host = env["PADDOCK_HOST"], let user = env["PADDOCK_USER"], let pass = env["PADDOCK_PASS"] else { return }
-    let hold = Double(env["PADDOCK_HOLD"] ?? "60") ?? 60
+    guard let host = env["LABDOCK_HOST"], let user = env["LABDOCK_USER"], let pass = env["LABDOCK_PASS"] else { return }
+    let hold = Double(env["LABDOCK_HOLD"] ?? "60") ?? 60
     let s = VimSession(host: host, username: user, password: pass, expectedThumbprint: nil)
     try await s.login()
     let vms = try await s.listVMs()

@@ -1,9 +1,9 @@
 import CryptoKit
 import Foundation
 import XCTest
-@testable import PaddockApp
+@testable import LabDockApp
 
-// The in-app updater's pure half (Sources/PaddockApp/Update/UpdateCore.swift) and its install
+// The in-app updater's pure half (Sources/LabDockApp/Update/UpdateCore.swift) and its install
 // helper script, run for real in a scratch directory. Ported from SheepTerm's
 // Tests/tests/UpdaterTests.swift (9 Oct 2026) with its check/eq harness mapped onto XCTest.
 
@@ -23,7 +23,7 @@ private func eq<T: Equatable>(_ a: T, _ b: T, _ name: String, file: StaticString
     XCTAssertEqual(a, b, name, file: file, line: line)
 }
 
-private let updTestConfig = UpdateConfig(appName: "Paddock", repository: "bestonehxh/Paddock",
+private let updTestConfig = UpdateConfig(appName: "LabDock", repository: "bestonehxh/LabDock",
                                          tagScheme: .build, publicKeyBase64: "",
                                          signingKeychainService: "test")
 
@@ -44,16 +44,16 @@ private func updRun(_ tool: String, _ args: [String], env: [String: String]? = n
 }
 
 /// A minimal app bundle: Info.plist + an executable + a marker file.
-private func updMakeBundle(at app: URL, id: String = "dev.paddock.app", short: String, build: String,
+private func updMakeBundle(at app: URL, id: String = "dev.labdock.app", short: String, build: String,
                            marker: String, executable: Bool = true) {
     let fm = FileManager.default
     try? fm.createDirectory(at: app.appendingPathComponent("Contents/MacOS"), withIntermediateDirectories: true)
     let plist: [String: Any] = ["CFBundleIdentifier": id, "CFBundleShortVersionString": short,
-                                "CFBundleVersion": build, "CFBundleExecutable": "Paddock"]
+                                "CFBundleVersion": build, "CFBundleExecutable": "LabDock"]
     let data = try! PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
     try! data.write(to: app.appendingPathComponent("Contents/Info.plist"))
     if executable {
-        let exe = app.appendingPathComponent("Contents/MacOS/Paddock")
+        let exe = app.appendingPathComponent("Contents/MacOS/LabDock")
         try! Data("#!/bin/sh\n".utf8).write(to: exe)
         try! fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: exe.path)
     }
@@ -105,7 +105,7 @@ private func runUpdaterChecks() {
     eq(UpdateCore.parseTag("v3.7", scheme: .semver), updV("3.7", nil), "upd: semver v3.7 parses")
     check(UpdateCore.parseTag("v3.7-1", scheme: .semver) == nil, "upd: semver refuses a build suffix")
     eq(UpdateCore.tag(for: updV("5.0", 1), scheme: scheme), "v5.0-1", "upd: tag round-trip")
-    eq(UpdateCore.zipName(for: updV("5.0", 1), config: updTestConfig), "Paddock-5.0-1.zip", "upd: zip name (build scheme)")
+    eq(UpdateCore.zipName(for: updV("5.0", 1), config: updTestConfig), "LabDock-5.0-1.zip", "upd: zip name (build scheme)")
     eq(UpdateCore.currentVersion(shortVersion: "4.2", bundleVersion: "9", scheme: scheme), updV("4.2", 9), "upd: current version from Info.plist")
     check(UpdateCore.currentVersion(shortVersion: "4.2", bundleVersion: nil, scheme: scheme) == nil, "upd: no CFBundleVersion → unknown")
 
@@ -161,22 +161,22 @@ private func runUpdaterChecks() {
     eq(UpdateCore.statusError(500), .badStatus(500), "upd: 500 = bad status")
 
     // ---- asset + signature selection ----
-    let base = "https://github.com/bestonehxh/Paddock/releases/download/v5.0-1/"
+    let base = "https://github.com/bestonehxh/LabDock/releases/download/v5.0-1/"
     let good: [(String, String, Int)] = [
-        ("Paddock-5.0-1.zip.zip", base + "Paddock-5.0-1.zip.zip", 10),   // decoy, never chosen
-        ("Paddock-5.0-1.zip", base + "Paddock-5.0-1.zip", 12_000_000),
-        ("Paddock-5.0-1.zip.sig", base + "Paddock-5.0-1.zip.sig", 89),
+        ("LabDock-5.0-1.zip.zip", base + "LabDock-5.0-1.zip.zip", 10),   // decoy, never chosen
+        ("LabDock-5.0-1.zip", base + "LabDock-5.0-1.zip", 12_000_000),
+        ("LabDock-5.0-1.zip.sig", base + "LabDock-5.0-1.zip.sig", 89),
     ]
     do {
-        let release = try UpdateCore.decodeRelease(updReleaseJSON(assets: good, html: "https://github.com/bestonehxh/Paddock/releases/tag/v5.0-1"))
+        let release = try UpdateCore.decodeRelease(updReleaseJSON(assets: good, html: "https://github.com/bestonehxh/LabDock/releases/tag/v5.0-1"))
         let offer = try UpdateCore.offer(from: release, config: updTestConfig)
         eq(offer.version, updV("5.0", 1), "upd: offer version")
-        eq(offer.zipName, "Paddock-5.0-1.zip", "upd: offer picks the exact zip name")
-        eq(offer.zipURL.absoluteString, base + "Paddock-5.0-1.zip", "upd: zip URL")
-        eq(offer.signatureURL.absoluteString, base + "Paddock-5.0-1.zip.sig", "upd: sig URL")
+        eq(offer.zipName, "LabDock-5.0-1.zip", "upd: offer picks the exact zip name")
+        eq(offer.zipURL.absoluteString, base + "LabDock-5.0-1.zip", "upd: zip URL")
+        eq(offer.signatureURL.absoluteString, base + "LabDock-5.0-1.zip.sig", "upd: sig URL")
         eq(offer.zipSize, 12_000_000, "upd: zip size carried")
         eq(offer.notes, "Notes line", "upd: notes cut at the --- footer")
-        eq(offer.page.absoluteString, "https://github.com/bestonehxh/Paddock/releases/tag/v5.0-1", "upd: release page kept")
+        eq(offer.page.absoluteString, "https://github.com/bestonehxh/LabDock/releases/tag/v5.0-1", "upd: release page kept")
     } catch {
         check(false, "upd: good release reads", "\(error)")
     }
@@ -186,26 +186,26 @@ private func runUpdaterChecks() {
             return nil
         } catch { return error }
     }
-    eq(offerError(Array(good.prefix(2))), .missingSignature("Paddock-5.0-1.zip.sig"), "upd: no .sig → refused")
-    eq(offerError([good[0], good[2]]), .missingAsset("Paddock-5.0-1.zip"), "upd: no zip → refused")
+    eq(offerError(Array(good.prefix(2))), .missingSignature("LabDock-5.0-1.zip.sig"), "upd: no .sig → refused")
+    eq(offerError([good[0], good[2]]), .missingAsset("LabDock-5.0-1.zip"), "upd: no zip → refused")
     eq(offerError(good, tag: "latest"), .unrecognisedTag("latest"), "upd: unrecognised tag")
-    let evil = "https://github.com/bestonehxh/PaddockEvil/releases/download/v5.0-1/Paddock-5.0-1.zip"
-    eq(offerError([("Paddock-5.0-1.zip", evil, 5), good[2]]), .untrustedURL(evil), "upd: another repo's URL refused")
-    let plain = "http://github.com/bestonehxh/Paddock/releases/download/v5.0-1/Paddock-5.0-1.zip"
-    eq(offerError([("Paddock-5.0-1.zip", plain, 5), good[2]]), .untrustedURL(plain), "upd: http refused")
-    let other = "https://example.com/bestonehxh/Paddock/releases/download/v5.0-1/Paddock-5.0-1.zip"
-    eq(offerError([("Paddock-5.0-1.zip", other, 5), good[2]]), .untrustedURL(other), "upd: another host refused")
-    let sigEvil = "https://github.com/someone/Paddock/releases/download/v5.0-1/x.sig"
-    eq(offerError([good[1], ("Paddock-5.0-1.zip.sig", sigEvil, 89)]), .untrustedURL(sigEvil), "upd: sig from elsewhere refused")
-    eq(offerError([("Paddock-5.0-1.zip", base + "Paddock-5.0-1.zip", 0), good[2]]), .tooLarge("Paddock-5.0-1.zip"), "upd: empty zip refused")
-    eq(offerError([("Paddock-5.0-1.zip", base + "Paddock-5.0-1.zip", UpdateCore.maxZipBytes + 1), good[2]]), .tooLarge("Paddock-5.0-1.zip"), "upd: huge zip refused")
-    eq(offerError([good[1], ("Paddock-5.0-1.zip.sig", base + "Paddock-5.0-1.zip.sig", 5000)]), .tooLarge("Paddock-5.0-1.zip.sig"), "upd: huge sig refused")
+    let evil = "https://github.com/bestonehxh/LabDockEvil/releases/download/v5.0-1/LabDock-5.0-1.zip"
+    eq(offerError([("LabDock-5.0-1.zip", evil, 5), good[2]]), .untrustedURL(evil), "upd: another repo's URL refused")
+    let plain = "http://github.com/bestonehxh/LabDock/releases/download/v5.0-1/LabDock-5.0-1.zip"
+    eq(offerError([("LabDock-5.0-1.zip", plain, 5), good[2]]), .untrustedURL(plain), "upd: http refused")
+    let other = "https://example.com/bestonehxh/LabDock/releases/download/v5.0-1/LabDock-5.0-1.zip"
+    eq(offerError([("LabDock-5.0-1.zip", other, 5), good[2]]), .untrustedURL(other), "upd: another host refused")
+    let sigEvil = "https://github.com/someone/LabDock/releases/download/v5.0-1/x.sig"
+    eq(offerError([good[1], ("LabDock-5.0-1.zip.sig", sigEvil, 89)]), .untrustedURL(sigEvil), "upd: sig from elsewhere refused")
+    eq(offerError([("LabDock-5.0-1.zip", base + "LabDock-5.0-1.zip", 0), good[2]]), .tooLarge("LabDock-5.0-1.zip"), "upd: empty zip refused")
+    eq(offerError([("LabDock-5.0-1.zip", base + "LabDock-5.0-1.zip", UpdateCore.maxZipBytes + 1), good[2]]), .tooLarge("LabDock-5.0-1.zip"), "upd: huge zip refused")
+    eq(offerError([good[1], ("LabDock-5.0-1.zip.sig", base + "LabDock-5.0-1.zip.sig", 5000)]), .tooLarge("LabDock-5.0-1.zip.sig"), "upd: huge sig refused")
     do {
         _ = try UpdateCore.decodeRelease(Data("<html>rate limited</html>".utf8))
         check(false, "upd: garbage JSON refused")
     } catch { eq(error, .unreadableRelease, "upd: garbage JSON → unreadable") }
     eq(UpdateCore.releasePage("file:///etc/passwd", config: updTestConfig), updTestConfig.releasesPage, "upd: file:// page → releases page")
-    eq(UpdateCore.releasePage("https://github.com/bestonehxh/PaddockX/releases", config: updTestConfig), updTestConfig.releasesPage, "upd: other repo page → releases page")
+    eq(UpdateCore.releasePage("https://github.com/bestonehxh/LabDockX/releases", config: updTestConfig), updTestConfig.releasesPage, "upd: other repo page → releases page")
     eq(UpdateCore.releasePage(nil, config: updTestConfig), updTestConfig.releasesPage, "upd: no page → releases page")
 
     // ---- release notes ----
@@ -242,7 +242,7 @@ private func runUpdaterChecks() {
     check(!UpdateCore.verifySignature(of: payload, signatureText: Data(badSig.base64EncodedString().utf8), publicKeyBase64: pub), "upd: a corrupted signature is refused")
 
     // ---- the embedded key == `.ship.conf`'s, and it is a real Ed25519 key ----
-    let appFile = (try? String(contentsOf: updPackageRoot.appendingPathComponent("Sources/PaddockApp/PaddockUpdate.swift"), encoding: .utf8)) ?? ""
+    let appFile = (try? String(contentsOf: updPackageRoot.appendingPathComponent("Sources/LabDockApp/LabDockUpdate.swift"), encoding: .utf8)) ?? ""
     // `.ship.conf` stays in the private repo (the public tree carries Tests but not it): there
     // the comparison is skipped and only the embedded key itself is checked.
     let conf = try? String(contentsOf: updPackageRoot.appendingPathComponent(".ship.conf"), encoding: .utf8)
@@ -266,7 +266,7 @@ private func runUpdaterChecks() {
 /// `inspectExtracted` and `installTarget` against fake bundles on disk.
 private func testUpdaterBundles() {
     let fm = FileManager.default
-    let root = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("paddock-upd-\(UUID().uuidString)")
+    let root = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("labdock-upd-\(UUID().uuidString)")
     defer { try? fm.removeItem(at: root) }
     var n = 0
     func fresh() -> URL {
@@ -278,14 +278,14 @@ private func testUpdaterBundles() {
     let current = updV("4.2", 9)
     func inspect(_ dir: URL, current: UpdateVersion = current, advertised: UpdateVersion = updV("5.0", 1)) -> UpdateError? {
         do {
-            _ = try UpdateCore.inspectExtracted(at: dir, config: updTestConfig, bundleIdentifier: "dev.paddock.app",
+            _ = try UpdateCore.inspectExtracted(at: dir, config: updTestConfig, bundleIdentifier: "dev.labdock.app",
                                                 current: current, advertised: advertised)
             return nil
         } catch { return error }
     }
 
     var d = fresh()
-    updMakeBundle(at: d.appendingPathComponent("Paddock.app"), short: "5.0", build: "1", marker: "new")
+    updMakeBundle(at: d.appendingPathComponent("LabDock.app"), short: "5.0", build: "1", marker: "new")
     check(inspect(d) == nil, "upd: 5.0 (1) over 4.2 (9) passes inspection", "\(String(describing: inspect(d)))")
     check(inspect(d, current: updV("5.0", 1)) != nil, "upd: the same version is refused")
     check(inspect(d, current: updV("5.0", 2)) != nil, "upd: 5.0 (1) over 5.0 (2) is refused")
@@ -293,21 +293,21 @@ private func testUpdaterBundles() {
     check(inspect(d, advertised: updV("5.1", 1)) != nil, "upd: bundle ≠ advertised marketing is refused")
 
     d = fresh()
-    updMakeBundle(at: d.appendingPathComponent("Paddock.app"), short: "4.2", build: "10", marker: "new")
+    updMakeBundle(at: d.appendingPathComponent("LabDock.app"), short: "4.2", build: "10", marker: "new")
     check(inspect(d, current: updV("5.0", 1), advertised: updV("4.2", 10)) != nil, "upd: 5.0 (1) over 5.0 (1) is refused (downgrade)")
 
     d = fresh()
-    updMakeBundle(at: d.appendingPathComponent("Paddock.app"), short: "5.0", build: "1", marker: "a")
+    updMakeBundle(at: d.appendingPathComponent("LabDock.app"), short: "5.0", build: "1", marker: "a")
     updMakeBundle(at: d.appendingPathComponent("Other.app"), short: "5.0", build: "1", marker: "b")
     check(inspect(d) != nil, "upd: two apps in the zip are refused")
 
     d = fresh()
-    updMakeBundle(at: d.appendingPathComponent("Paddock.app"), short: "5.0", build: "1", marker: "a")
+    updMakeBundle(at: d.appendingPathComponent("LabDock.app"), short: "5.0", build: "1", marker: "a")
     try? Data("x".utf8).write(to: d.appendingPathComponent("README"))
     check(inspect(d) != nil, "upd: an extra file beside the app is refused")
 
     d = fresh()
-    updMakeBundle(at: d.appendingPathComponent("Paddock.app"), id: "com.evil.Paddock", short: "5.0", build: "1", marker: "a")
+    updMakeBundle(at: d.appendingPathComponent("LabDock.app"), id: "com.evil.LabDock", short: "5.0", build: "1", marker: "a")
     check(inspect(d) != nil, "upd: another bundle identifier is refused")
 
     d = fresh()
@@ -315,31 +315,31 @@ private func testUpdaterBundles() {
     check(inspect(d) != nil, "upd: a differently named app is refused")
 
     d = fresh()
-    updMakeBundle(at: d.appendingPathComponent("Paddock.app"), short: "5.0", build: "1", marker: "a", executable: false)
+    updMakeBundle(at: d.appendingPathComponent("LabDock.app"), short: "5.0", build: "1", marker: "a", executable: false)
     check(inspect(d) != nil, "upd: an app without its executable is refused")
 
     d = fresh()
     let real = fresh()
-    updMakeBundle(at: real.appendingPathComponent("Paddock.app"), short: "5.0", build: "1", marker: "a")
-    try? fm.createSymbolicLink(at: d.appendingPathComponent("Paddock.app"), withDestinationURL: real.appendingPathComponent("Paddock.app"))
+    updMakeBundle(at: real.appendingPathComponent("LabDock.app"), short: "5.0", build: "1", marker: "a")
+    try? fm.createSymbolicLink(at: d.appendingPathComponent("LabDock.app"), withDestinationURL: real.appendingPathComponent("LabDock.app"))
     check(inspect(d) != nil, "upd: a symlinked .app is refused")
 
     d = fresh()
     check(inspect(d) != nil, "upd: an empty archive is refused")
 
     // Install target: only a writable bundle in /Applications.
-    check(UpdateCore.installTarget(bundleURL: root.appendingPathComponent("x1/Paddock.app")) == nil, "upd: outside /Applications → reveal instead")
-    check(UpdateCore.installTarget(bundleURL: URL(fileURLWithPath: "/Applications/../tmp/Paddock.app")) == nil, "upd: /Applications/.. does not count")
-    check(UpdateCore.installTarget(bundleURL: URL(fileURLWithPath: "/Applications/NoSuchPaddockForTests.app")) == nil, "upd: a missing bundle is not writable")
-    check(UpdateCore.installTarget(bundleURL: URL(fileURLWithPath: "/private/var/folders/x/AppTranslocation/y/d/Paddock.app")) == nil, "upd: a translocated copy → reveal")
-    let backup = UpdateCore.backupPath(for: URL(fileURLWithPath: "/Applications/Paddock.app"), stamp: "42")
-    eq(backup, "/Applications/.Paddock-previous-42.app", "upd: the backup sits beside the app (same volume → rename)")
+    check(UpdateCore.installTarget(bundleURL: root.appendingPathComponent("x1/LabDock.app")) == nil, "upd: outside /Applications → reveal instead")
+    check(UpdateCore.installTarget(bundleURL: URL(fileURLWithPath: "/Applications/../tmp/LabDock.app")) == nil, "upd: /Applications/.. does not count")
+    check(UpdateCore.installTarget(bundleURL: URL(fileURLWithPath: "/Applications/NoSuchLabDockForTests.app")) == nil, "upd: a missing bundle is not writable")
+    check(UpdateCore.installTarget(bundleURL: URL(fileURLWithPath: "/private/var/folders/x/AppTranslocation/y/d/LabDock.app")) == nil, "upd: a translocated copy → reveal")
+    let backup = UpdateCore.backupPath(for: URL(fileURLWithPath: "/Applications/LabDock.app"), stamp: "42")
+    eq(backup, "/Applications/.LabDock-previous-42.app", "upd: the backup sits beside the app (same volume → rename)")
 }
 
 /// The real helper script, run by /bin/sh against fake bundles.
 private func testUpdaterHelperScript() {
     let fm = FileManager.default
-    let root = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("paddock-updsh-\(UUID().uuidString)")
+    let root = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("labdock-updsh-\(UUID().uuidString)")
     try! fm.createDirectory(at: root, withIntermediateDirectories: true)
     defer {
         _ = updRun("/bin/chmod", ["-R", "u+w", root.path])
@@ -360,8 +360,8 @@ private func testUpdaterHelperScript() {
         let work = root.appendingPathComponent("work\(n)")
         try! fm.createDirectory(at: apps, withIntermediateDirectories: true)
         try! fm.createDirectory(at: work.appendingPathComponent("extracted"), withIntermediateDirectories: true)
-        let target = apps.appendingPathComponent("Paddock.app")
-        let new = work.appendingPathComponent("extracted/Paddock.app")
+        let target = apps.appendingPathComponent("LabDock.app")
+        let new = work.appendingPathComponent("extracted/LabDock.app")
         updMakeBundle(at: target, short: "4.2", build: "9", marker: "old")
         updMakeBundle(at: new, short: "5.0", build: "1", marker: "new")
         try? fm.removeItem(at: opened)
@@ -439,7 +439,7 @@ private func testUpdaterHelperScript() {
     s = scene()
     eq(helper(s, pid: "12x"), 64, "upd helper: a bad PID is refused")
     check(fm.fileExists(atPath: s.work.path), "upd helper: …and bad arguments delete nothing")
-    var relative = s; relative.target = "Paddock.app"
+    var relative = s; relative.target = "LabDock.app"
     eq(helper(relative, pid: "999999"), 64, "upd helper: a relative path is refused")
     eq(updMarker(s.target), "old", "upd helper: …old app untouched")
     eq(openedPaths(), [], "upd helper: refusals launch nothing")

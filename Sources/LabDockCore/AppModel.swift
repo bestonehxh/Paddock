@@ -117,7 +117,7 @@ public final class AppModel {
         do {
             infos = try store.load()
         } catch {
-            storeError = (error as? PaddockError)?.errorDescription ?? error.localizedDescription
+            storeError = (error as? LabDockError)?.errorDescription ?? error.localizedDescription
         }
         for info in infos {
             hosts.append(makeHost(info))
@@ -189,7 +189,7 @@ public final class AppModel {
             do {
                 fetched = try await host.detail(of: vm)
             } catch {
-                failure = (error as? VimError)?.errorDescription ?? (error as? PaddockError)?.errorDescription ?? error.localizedDescription
+                failure = (error as? VimError)?.errorDescription ?? (error as? LabDockError)?.errorDescription ?? error.localizedDescription
             }
             self.detailRunning = false
             if self.selection == selection {
@@ -211,7 +211,7 @@ public final class AppModel {
         let thumbprint = session.transport.observedThumbprint
         let subject = session.transport.observedSubject
         await session.logout()
-        guard let thumbprint else { throw PaddockError.noCertificate }
+        guard let thumbprint else { throw LabDockError.noCertificate }
         let raw = content.apiVersion.isEmpty ? session.transport.apiVersion : content.apiVersion
         let version = raw.hasSuffix(".0") && raw.count > 4 ? String(raw.dropLast(2)) : raw
         return HostProbe(product: content.fullName, version: version,
@@ -224,8 +224,8 @@ public final class AppModel {
     /// it sees, and a later change is still reported.
     public func addHost(address: String, user: String, password: String, probe: HostProbe, pin: Bool = true) throws {
         let address = address.trimmingCharacters(in: .whitespaces)
-        guard !hosts.contains(where: { $0.address == address }) else { throw PaddockError.duplicateHost(address) }
-        if let storeError { throw PaddockError.hostsFileUnreadable(store.url.path, storeError) }
+        guard !hosts.contains(where: { $0.address == address }) else { throw LabDockError.duplicateHost(address) }
+        if let storeError { throw LabDockError.hostsFileUnreadable(store.url.path, storeError) }
         try Keychain.setPassword(password, for: Keychain.hostAccount(address: address))
         let info = StoredHost(address: address, user: user,
                               thumbprint: pin ? probe.thumbprintSHA1 : nil,

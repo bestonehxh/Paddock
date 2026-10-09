@@ -269,8 +269,8 @@ extension VimSession {
     public func run(_ script: String, shell: Shell, vm: MoRef, login: GuestLogin, family: GuestFamily,
                     workingDirectory: String? = nil, timeout: TimeInterval = 600) async throws -> RunResult {
         let start = Date()
-        let scriptPath = try await createTemporaryFile(vm: vm, login: login, prefix: "paddock-", suffix: shell.scriptSuffix)
-        let outPath = try await createTemporaryFile(vm: vm, login: login, prefix: "paddock-", suffix: ".out")
+        let scriptPath = try await createTemporaryFile(vm: vm, login: login, prefix: "labdock-", suffix: shell.scriptSuffix)
+        let outPath = try await createTemporaryFile(vm: vm, login: login, prefix: "labdock-", suffix: ".out")
         defer {
             Task {
                 try? await deleteFile(vm: vm, login: login, path: scriptPath)
@@ -324,7 +324,7 @@ extension VimSession {
     public func paste(_ text: String, vm: MoRef, login: GuestLogin, family: GuestFamily) async throws {
         var interactive = login
         interactive.interactive = true
-        let path = try await createTemporaryFile(vm: vm, login: interactive, prefix: "paddock-clip-", suffix: ".txt")
+        let path = try await createTemporaryFile(vm: vm, login: interactive, prefix: "labdock-clip-", suffix: ".txt")
         // UTF-8 with BOM so PowerShell 5 reads it as Unicode without an -Encoding switch surprise.
         var data = Data([0xEF, 0xBB, 0xBF])
         data.append(Data(text.utf8))

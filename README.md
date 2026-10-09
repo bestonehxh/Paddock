@@ -1,21 +1,21 @@
 <p align="center">
-  <img src=".github/icon.png" width="128" alt="Paddock app icon">
+  <img src=".github/icon.png" width="128" alt="LabDock app icon">
 </p>
 
-# Paddock
+# LabDock
 
 **ESXi virtual machines from a native Mac app — power, snapshots, files, scripts and a live console, for standalone hosts without vCenter.**
 
-Paddock talks to ESXi the way the host's own web client does: the vSphere API over HTTPS for
+LabDock talks to ESXi the way the host's own web client does: the vSphere API over HTTPS for
 inventory and actions, VMware Tools for anything inside a guest, and the host's WebMKS stream
 for the console. Everything is written in Swift — no `govc`, no third-party packages, no bundled
 binaries. Several hosts sit in one sidebar; each VM gets the same slim tab bar.
 
 ## ⬇️ Download
 
-[![Download Paddock for macOS](https://img.shields.io/badge/Download-Paddock_1.0_%2810%29_for_macOS-2ea44f?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/bestonehxh/Paddock/releases/latest)
+[![Download LabDock for macOS](https://img.shields.io/badge/Download-LabDock_2.0_%281%29_for_macOS-2ea44f?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/bestonehxh/LabDock/releases/latest)
 
-**[Get the latest release →](https://github.com/bestonehxh/Paddock/releases/latest)** — download `Paddock-1.0-10.zip`, unzip, and drag **Paddock.app** into `Applications`.
+**[Get the latest release →](https://github.com/bestonehxh/LabDock/releases/latest)** — download `LabDock-2.0-1.zip`, unzip, and drag **LabDock.app** into `Applications`.
 
 > The build is not notarized, so macOS will warn on first launch —
 > right-click the app and choose **Open**, or allow it in System Settings › Privacy & Security.
@@ -61,18 +61,18 @@ binaries. Several hosts sit in one sidebar; each VM gets the same slim tab bar.
 ## Build from source
 
 ```sh
-git clone https://github.com/bestonehxh/Paddock.git
-cd Paddock
-swift test                 # unit tests; the live tests skip unless PADDOCK_HOST/USER/PASS are set
-Scripts/make-app.sh        # → build/Paddock.app
+git clone https://github.com/bestonehxh/LabDock.git
+cd LabDock
+swift test                 # unit tests; the live tests skip unless LABDOCK_HOST/USER/PASS are set
+Scripts/make-app.sh        # → build/LabDock.app
 ```
 
 Swift 6, macOS 26 SDK. The package has four modules: `VimClient` (vSphere SOAP), `MKSClient`
-(WebMKS / RFB console), `PaddockCore` (hosts, Keychain, app model) and the SwiftUI app.
+(WebMKS / RFB console), `LabDockCore` (hosts, Keychain, app model) and the SwiftUI app.
 
 ## The Sheep family 🐑
 
-Paddock sits next to a few small native macOS apps for network engineers:
+LabDock sits next to a few small native macOS apps for network engineers:
 
 |  | App | What it does |
 |---|---|---|
@@ -86,7 +86,7 @@ Paddock sits next to a few small native macOS apps for network engineers:
 | <img src="https://raw.githubusercontent.com/bestonehxh/SheepKey/main/.github/icon.png?v=3" width="48" height="48" alt="SheepKey"> | **[SheepKey](https://github.com/bestonehxh/SheepKey)**<br>[⬇️ Download](https://github.com/bestonehxh/SheepKey/releases/latest) | Mac shortcuts (⌘ as Ctrl) inside AnyDesk, TeamViewer and RustDesk |
 | <img src="https://raw.githubusercontent.com/bestonehxh/LabDC/main/.github/icon.png" width="48" height="48" alt="LabDC"> | **[LabDC](https://github.com/bestonehxh/LabDC)**<br>[⬇️ Download](https://github.com/bestonehxh/LabDC/releases/latest) | Active Directory–compatible domain controller with RADIUS for 802.1X and a lab CA |
 | <img src="https://raw.githubusercontent.com/bestonehxh/SheepLog/main/.github/icon.png?v=2" width="48" height="48" alt="UncleSpy"> | **[UncleSpy](https://github.com/bestonehxh/SheepLog)**<br>[⬇️ Download](https://github.com/bestonehxh/SheepLog/releases/latest) | Syslog viewer, SNMP tester and packet capture with TCP and 802.1X ladder diagrams — and a Troubleshoot page that reads all three |
-| <img src="https://raw.githubusercontent.com/bestonehxh/Paddock/main/.github/icon.png" width="48" height="48" alt="Paddock"> | **[Paddock](https://github.com/bestonehxh/Paddock)**<br>[⬇️ Download](https://github.com/bestonehxh/Paddock/releases/latest) | VM control and console for standalone ESXi hosts — power, snapshots, guest files and scripts, no vCenter |
+| <img src="https://raw.githubusercontent.com/bestonehxh/LabDock/main/.github/icon.png" width="48" height="48" alt="LabDock"> | **[LabDock](https://github.com/bestonehxh/LabDock)**<br>[⬇️ Download](https://github.com/bestonehxh/LabDock/releases/latest) | VM control and console for standalone ESXi hosts — power, snapshots, guest files and scripts, no vCenter |
 
 ## License
 

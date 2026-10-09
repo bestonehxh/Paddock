@@ -1,4 +1,4 @@
-import PaddockCore
+import LabDockCore
 import SwiftUI
 
 /// Address / User / Password → Connect shows the certificate's subject and SHA-1 thumbprint,
@@ -30,11 +30,11 @@ struct AddHostSheet: View {
                         Text(probe.certificateSubject ?? "—")
                             .font(Theme.body).foregroundStyle(Theme.ink).textSelection(.enabled)
                     }
-                    SheetField("SHA-1 thumbprint", note: "Paddock reconnects only when the certificate matches this; if it changes you are asked again.") {
+                    SheetField("SHA-1 thumbprint", note: "LabDock reconnects only when the certificate matches this; if it changes you are asked again.") {
                         Text(probe.thumbprintSHA1)
                             .font(Theme.mono).foregroundStyle(Theme.ink).textSelection(.enabled)
                     }
-                    SheetField("SHA-256 thumbprint", note: "The same certificate, the stronger hash: once Paddock has seen it, this is the match it requires.") {
+                    SheetField("SHA-256 thumbprint", note: "The same certificate, the stronger hash: once LabDock has seen it, this is the match it requires.") {
                         Text(probe.thumbprintSHA256)
                             .font(Theme.mono).foregroundStyle(Theme.ink).textSelection(.enabled)
                     }

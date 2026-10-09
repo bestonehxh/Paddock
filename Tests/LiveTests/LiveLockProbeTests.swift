@@ -6,10 +6,10 @@ import Testing
 import UniformTypeIdentifiers
 import VimClient
 
-/// Connects, nudges the mouse, waits 2.5 s, saves the latest frame (PADDOCK_SNAP), disconnects.
+/// Connects, nudges the mouse, waits 2.5 s, saves the latest frame (LABDOCK_SNAP), disconnects.
 @Test func liveLockProbe() async throws {
     let env = ProcessInfo.processInfo.environment
-    guard let host = env["PADDOCK_HOST"], let user = env["PADDOCK_USER"], let pass = env["PADDOCK_PASS"], let name = env["PADDOCK_VM"] else { return }
+    guard let host = env["LABDOCK_HOST"], let user = env["LABDOCK_USER"], let pass = env["LABDOCK_PASS"], let name = env["LABDOCK_VM"] else { return }
     let s = VimSession(host: host, username: user, password: pass, expectedThumbprint: nil)
     try await s.login()
     guard let vm = try await s.listVMs().first(where: { $0.name == name }) else { return }
@@ -41,7 +41,7 @@ import VimClient
     }
     stopper.cancel()
     if let img = last?.image {
-        let out = URL(fileURLWithPath: "/tmp/\(env["PADDOCK_SNAP"] ?? "probe").png")
+        let out = URL(fileURLWithPath: "/tmp/\(env["LABDOCK_SNAP"] ?? "probe").png")
         if let dest = CGImageDestinationCreateWithURL(out as CFURL, UTType.png.identifier as CFString, 1, nil) {
             CGImageDestinationAddImage(dest, img, nil); CGImageDestinationFinalize(dest)
         }

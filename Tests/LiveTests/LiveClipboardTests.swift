@@ -2,12 +2,12 @@ import Foundation
 import Testing
 import VimClient
 
-/// Reads the guest's clipboard through Tools the way ⌘C does (PADDOCK_VM + PADDOCK_GUEST_USER /
-/// PADDOCK_GUEST_PASS), printing each step's timing and the text that came back.
+/// Reads the guest's clipboard through Tools the way ⌘C does (LABDOCK_VM + LABDOCK_GUEST_USER /
+/// LABDOCK_GUEST_PASS), printing each step's timing and the text that came back.
 @Test func liveGuestClipboardRead() async throws {
     let env = ProcessInfo.processInfo.environment
-    guard let host = env["PADDOCK_HOST"], let user = env["PADDOCK_USER"], let pass = env["PADDOCK_PASS"],
-          let name = env["PADDOCK_VM"], let guser = env["PADDOCK_GUEST_USER"], let gpass = env["PADDOCK_GUEST_PASS"] else { return }
+    guard let host = env["LABDOCK_HOST"], let user = env["LABDOCK_USER"], let pass = env["LABDOCK_PASS"],
+          let name = env["LABDOCK_VM"], let guser = env["LABDOCK_GUEST_USER"], let gpass = env["LABDOCK_GUEST_PASS"] else { return }
     let s = VimSession(host: host, username: user, password: pass, expectedThumbprint: nil)
     try await s.login()
     guard let vm = try await s.listVMs().first(where: { $0.name == name }) else { Issue.record("no VM \(name)"); return }
@@ -32,8 +32,8 @@ import VimClient
 /// guest → Mac path. Same env vars as above.
 @Test func liveGuestClipboardSync() async throws {
     let env = ProcessInfo.processInfo.environment
-    guard let host = env["PADDOCK_HOST"], let user = env["PADDOCK_USER"], let pass = env["PADDOCK_PASS"],
-          let name = env["PADDOCK_VM"], let guser = env["PADDOCK_GUEST_USER"], let gpass = env["PADDOCK_GUEST_PASS"] else { return }
+    guard let host = env["LABDOCK_HOST"], let user = env["LABDOCK_USER"], let pass = env["LABDOCK_PASS"],
+          let name = env["LABDOCK_VM"], let guser = env["LABDOCK_GUEST_USER"], let gpass = env["LABDOCK_GUEST_PASS"] else { return }
     let s = VimSession(host: host, username: user, password: pass, expectedThumbprint: nil)
     try await s.login()
     guard let vm = try await s.listVMs().first(where: { $0.name == name }) else { Issue.record("no VM \(name)"); return }
@@ -58,7 +58,7 @@ import VimClient
     let first = try await sync.pollGuest()
     print("guest clipboard at start:", first.map { "\($0.count) chars: \($0.prefix(60))" } ?? "nil")
     t = Date()
-    let probe = "paddock sync test \(Int(Date().timeIntervalSince1970))"
+    let probe = "labdock sync test \(Int(Date().timeIntervalSince1970))"
     let acked = try await sync.push(probe, timeout: 5)
     print("push acked:", acked, "in", String(format: "%.1f s", Date().timeIntervalSince(t)))
     let after = (try? await s.listFiles(vm: vm.ref, login: login, path: dir)) ?? []

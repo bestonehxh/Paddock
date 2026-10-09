@@ -1,6 +1,6 @@
 import Foundation
 
-/// One ESXi host as it lives in `~/Library/Application Support/Paddock/hosts.json`: where to
+/// One ESXi host as it lives in `~/Library/Application Support/LabDock/hosts.json`: where to
 /// reach it, who to log in as, which certificate to expect. No secrets here — passwords live in
 /// the Keychain only.
 public struct StoredHost: Codable, Identifiable, Hashable, Sendable {
@@ -46,7 +46,7 @@ public final class HostStore: Sendable {
     public static var defaultDirectory: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.homeDirectoryForCurrentUser
-        return base.appendingPathComponent("Paddock", isDirectory: true)
+        return base.appendingPathComponent("LabDock", isDirectory: true)
     }
 
     /// The saved hosts, sorted by address. A missing file is an empty list; anything else that
@@ -57,14 +57,14 @@ public final class HostStore: Sendable {
         do {
             data = try Data(contentsOf: url)
         } catch {
-            throw PaddockError.hostsFileUnreadable(url.path, error.localizedDescription)
+            throw LabDockError.hostsFileUnreadable(url.path, error.localizedDescription)
         }
         if data.isEmpty { return [] }
         do {
             let hosts = try decoder.decode([StoredHost].self, from: data)
             return hosts.sorted { $0.address.localizedStandardCompare($1.address) == .orderedAscending }
         } catch {
-            throw PaddockError.hostsFileUnreadable(url.path, "it isn't the JSON Paddock writes")
+            throw LabDockError.hostsFileUnreadable(url.path, "it isn't the JSON LabDock writes")
         }
     }
 

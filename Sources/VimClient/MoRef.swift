@@ -40,7 +40,7 @@ public enum VimError: Error, Sendable, LocalizedError {
         case .transport(let s): "Couldn't reach the host: \(s)"
         case .httpStatus(let c): "The host answered HTTP \(c)"
         case .malformedResponse(let s): "The host sent something unexpected: \(s)"
-        case .badAddress(let s): "The address \(s) isn't a host name or IP Paddock can connect to"
+        case .badAddress(let s): "The address \(s) isn't a host name or IP LabDock can connect to"
         case .fault(let type, let message):
             switch type {
             case "InvalidLogin": "Wrong user name or password"

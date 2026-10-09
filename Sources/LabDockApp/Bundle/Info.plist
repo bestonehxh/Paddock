@@ -5,23 +5,23 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Paddock</string>
+	<string>LabDock</string>
 	<key>CFBundleExecutable</key>
-	<string>Paddock</string>
+	<string>LabDock</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>Bestchaan.Paddock</string>
+	<string>Bestchaan.LabDock</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Paddock</string>
+	<string>LabDock</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>2.0</string>
 	<key>CFBundleVersion</key>
-	<string>10</string>
+	<string>1</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.developer-tools</string>
 	<key>LSMinimumSystemVersion</key>
@@ -29,9 +29,9 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>Paddock — ESXi virtual machines, quietly.</string>
+	<string>LabDock — ESXi virtual machines, quietly.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Paddock reaches the ESXi hosts you add — over your local network — for power, snapshots, files and the console.</string>
+	<string>LabDock reaches the ESXi hosts you add — over your local network — for power, snapshots, files and the console.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSSupportsAutomaticTermination</key>

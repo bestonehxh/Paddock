@@ -1,6 +1,6 @@
 import AppKit
 import os
-import PaddockCore
+import LabDockCore
 import SwiftUI
 import VimClient
 import MKSClient
@@ -303,7 +303,7 @@ struct ConsoleView: View {
 
     /// Starts the watcher in the guest and the two polling loops: guest → Mac every second,
     /// Mac → guest whenever the pasteboard's change count moves.
-    private static let log = Logger(subsystem: "Bestchaan.Paddock", category: "clipboard")
+    private static let log = Logger(subsystem: "Bestchaan.LabDock", category: "clipboard")
 
     private func startClipboardSharing() {
         guard model.clipboardSharing else { Self.log.notice("sharing off"); return }
@@ -316,7 +316,7 @@ struct ConsoleView: View {
         }
         guard let login = host.guestLogin(vm: vm) else {
             Self.log.notice("guest login saved but unreadable for \(vm.name, privacy: .public): the Keychain refused")
-            note = "The Keychain didn't let Paddock read the guest login; click Allow when macOS asks, then reopen the console."
+            note = "The Keychain didn't let LabDock read the guest login; click Allow when macOS asks, then reopen the console."
             return
         }
         guard let s = try? host.sessionForGuest() else { Self.log.notice("no host session"); return }
@@ -1153,14 +1153,14 @@ final class ConsoleNSView: NSView {
         if flags == [.command], let letter = shortcutLetters[event.keyCode], !event.isARepeat {
             switch letter {
             case "v":
-                Logger(subsystem: "Bestchaan.Paddock", category: "keys").notice("⌘V in console")
+                Logger(subsystem: "Bestchaan.LabDock", category: "keys").notice("⌘V in console")
                 // ⌘ is Control in the guest, and it is still down: lift every held modifier
                 // first, or the pasted text arrives as Ctrl+letter shortcuts (owner's Notepad
                 // got a "save changes?" dialog, 3 Oct 2026).
                 liftModifiers()
                 onPasteShortcut?()          // Mac clipboard → guest (Tools, or typed), then Ctrl+V
             case "c":
-                Logger(subsystem: "Bestchaan.Paddock", category: "keys").notice("⌘C in console")
+                Logger(subsystem: "Bestchaan.LabDock", category: "keys").notice("⌘C in console")
                 sendControlCombo("c")       // the guest copies…
                 onCopyShortcut?()           // …and the Mac picks it up through Tools
             default:

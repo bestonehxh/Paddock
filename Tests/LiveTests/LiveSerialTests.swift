@@ -3,11 +3,11 @@ import Testing
 import VimClient
 
 /// Read-only: the test VMs' power state and serial ports, and the ESXi firewall rule for
-/// serial-over-network. PADDOCK_VMS = comma-separated names.
+/// serial-over-network. LABDOCK_VMS = comma-separated names.
 @Test func liveSerialProbe() async throws {
     let env = ProcessInfo.processInfo.environment
-    guard let host = env["PADDOCK_HOST"], let user = env["PADDOCK_USER"], let pass = env["PADDOCK_PASS"],
-          let names = env["PADDOCK_VMS"]?.split(separator: ",").map(String.init) else { return }
+    guard let host = env["LABDOCK_HOST"], let user = env["LABDOCK_USER"], let pass = env["LABDOCK_PASS"],
+          let names = env["LABDOCK_VMS"]?.split(separator: ",").map(String.init) else { return }
     let s = VimSession(host: host, username: user, password: pass, expectedThumbprint: nil)
     try await s.login()
     let vms = try await s.listVMs()
@@ -30,14 +30,14 @@ import VimClient
     await s.logout()
 }
 
-/// Opt-in and run by the owner (PADDOCK_SERIAL_VM): enables the ESXi serial-over-network
-/// firewall rule, powers the VM off, adds a serial port served at telnet://:PADDOCK_SERIAL_PORT
+/// Opt-in and run by the owner (LABDOCK_SERIAL_VM): enables the ESXi serial-over-network
+/// firewall rule, powers the VM off, adds a serial port served at telnet://:LABDOCK_SERIAL_PORT
 /// on the host, powers it on. Not run by Claude: it opens a port on the host.
 @Test func liveSerialSetup() async throws {
     let env = ProcessInfo.processInfo.environment
-    guard let host = env["PADDOCK_HOST"], let user = env["PADDOCK_USER"], let pass = env["PADDOCK_PASS"],
-          let name = env["PADDOCK_SERIAL_VM"] else { return }
-    let port = env["PADDOCK_SERIAL_PORT"] ?? "2001"
+    guard let host = env["LABDOCK_HOST"], let user = env["LABDOCK_USER"], let pass = env["LABDOCK_PASS"],
+          let name = env["LABDOCK_SERIAL_VM"] else { return }
+    let port = env["LABDOCK_SERIAL_PORT"] ?? "2001"
     let s = VimSession(host: host, username: user, password: pass, expectedThumbprint: nil)
     try await s.login()
     guard let vm = try await s.listVMs().first(where: { $0.name == name }) else { Issue.record("no VM \(name)"); return }
@@ -85,12 +85,12 @@ import VimClient
     await s.logout()
 }
 
-/// Cleanup after the serial experiment (PADDOCK_SERIAL_CLEANUP_VM): powers the VM off, removes
+/// Cleanup after the serial experiment (LABDOCK_SERIAL_CLEANUP_VM): powers the VM off, removes
 /// its network serial port(s), powers it back on, and disables the host firewall rule.
 @Test func liveSerialCleanup() async throws {
     let env = ProcessInfo.processInfo.environment
-    guard let host = env["PADDOCK_HOST"], let user = env["PADDOCK_USER"], let pass = env["PADDOCK_PASS"],
-          let name = env["PADDOCK_SERIAL_CLEANUP_VM"] else { return }
+    guard let host = env["LABDOCK_HOST"], let user = env["LABDOCK_USER"], let pass = env["LABDOCK_PASS"],
+          let name = env["LABDOCK_SERIAL_CLEANUP_VM"] else { return }
     let s = VimSession(host: host, username: user, password: pass, expectedThumbprint: nil)
     try await s.login()
     guard let vm = try await s.listVMs().first(where: { $0.name == name }) else { Issue.record("no VM \(name)"); return }

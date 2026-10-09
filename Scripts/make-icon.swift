@@ -1,9 +1,9 @@
 // Draws the app icon (1024×1024 PNG). Variants, picked by the second argument:
 //   fence  — three posts and two rails on a green hill under a cream sky (first proposal)
 //   gate   — a single dark gate (two posts, three rails, a diagonal brace) on cream, nothing else
-//   aerial — the paddock from above: a green rounded field with a white rail ring and a gap
+//   aerial — the dock from above: a green rounded field with a white rail ring and a gap
 //   ring   — a dark ring of rails on cream with a small green field inside (badge-like)
-// Usage: swift Scripts/make-icon.swift Sources/PaddockApp/Bundle/AppIcon.png [fence|gate|aerial|ring]
+// Usage: swift Scripts/make-icon.swift Sources/LabDockApp/Bundle/AppIcon.png [fence|gate|aerial|ring]
 import AppKit
 
 let args = CommandLine.arguments.dropFirst()
@@ -34,7 +34,7 @@ func rounded(_ r: NSRect, _ radius: CGFloat, _ c: NSColor) {
 
 switch variant {
 case "frame":
-    // A hollow rounded square: the paddock's rail, nothing inside.
+    // A hollow rounded square: the dock's rail, nothing inside.
     let charcoal = color(0x1F2125), charcoalTop = color(0x2A2D33), mint = color(0x7DD98C)
     NSGradient(starting: charcoalTop, ending: charcoal)!.draw(in: squircle, angle: -90)
     let ring = NSBezierPath(roundedRect: NSRect(x: 262, y: 262, width: 500, height: 500), xRadius: 110, yRadius: 110)
@@ -52,7 +52,7 @@ case "frame-gate":
     rounded(NSRect(x: 400, y: 214, width: 44, height: 104), 22, mint)
     rounded(NSRect(x: 580, y: 214, width: 44, height: 104), 22, mint)
 case "frame-dot":
-    // Hollow square with one small green light inside: a running machine in its paddock.
+    // Hollow square with one small green light inside: a running machine in its dock.
     let charcoal = color(0x1F2125), charcoalTop = color(0x2A2D33), mint = color(0x7DD98C), rail = color(0x9AA0AA)
     NSGradient(starting: charcoalTop, ending: charcoal)!.draw(in: squircle, angle: -90)
     let ring = NSBezierPath(roundedRect: NSRect(x: 262, y: 262, width: 500, height: 500), xRadius: 110, yRadius: 110)

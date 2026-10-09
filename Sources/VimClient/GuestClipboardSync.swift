@@ -2,7 +2,7 @@ import Foundation
 
 /// Two-way clipboard sharing with a guest over VMware Tools (what Fusion does with its own
 /// agent): a small watcher runs in the guest's desktop session, writes every new guest clipboard
-/// text to a file Paddock polls, and sets the guest clipboard from text Paddock uploads. One
+/// text to a file LabDock polls, and sets the guest clipboard from text LabDock uploads. One
 /// extra second of latency, no guest network needed. Windows (PowerShell, STA) and Linux (xclip /
 /// wl-clipboard / xsel) guests; macOS guests use pbcopy / pbpaste.
 public actor GuestClipboardSync {
@@ -32,7 +32,7 @@ public actor GuestClipboardSync {
 
     public func start() async throws {
         guard !started else { return }
-        dir = try await session.createTemporaryDirectory(vm: vm, login: login, prefix: "paddock-clip-")
+        dir = try await session.createTemporaryDirectory(vm: vm, login: login, prefix: "labdock-clip-")
         if family == .windows {
             let runner = path("watch.ps1")
             try await session.upload(Data(Self.windowsWatcher(dir: dir).utf8), to: runner, vm: vm, login: login, family: family)

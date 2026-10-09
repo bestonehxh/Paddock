@@ -7,12 +7,12 @@ import UniformTypeIdentifiers
 import VimClient
 
 /// Replays the app's switch-away sequence (console + clipboard watcher, optional keys, then
-/// stop + disconnect), reconnects and snapshots. PADDOCK_SEQ = "sync,keys" picks the pieces.
+/// stop + disconnect), reconnects and snapshots. LABDOCK_SEQ = "sync,keys" picks the pieces.
 @Test func liveLockSequence() async throws {
     let env = ProcessInfo.processInfo.environment
-    guard let host = env["PADDOCK_HOST"], let user = env["PADDOCK_USER"], let pass = env["PADDOCK_PASS"], let name = env["PADDOCK_VM"],
-          let guser = env["PADDOCK_GUEST_USER"], let gpass = env["PADDOCK_GUEST_PASS"] else { return }
-    let pieces = Set((env["PADDOCK_SEQ"] ?? "").split(separator: ",").map(String.init))
+    guard let host = env["LABDOCK_HOST"], let user = env["LABDOCK_USER"], let pass = env["LABDOCK_PASS"], let name = env["LABDOCK_VM"],
+          let guser = env["LABDOCK_GUEST_USER"], let gpass = env["LABDOCK_GUEST_PASS"] else { return }
+    let pieces = Set((env["LABDOCK_SEQ"] ?? "").split(separator: ",").map(String.init))
     let s = VimSession(host: host, username: user, password: pass, expectedThumbprint: nil)
     try await s.login()
     guard let vm = try await s.listVMs().first(where: { $0.name == name }) else { return }
@@ -34,7 +34,7 @@ import VimClient
             if case .state(.disconnected) = event { break }
         }
         guardTask.cancel()
-        if let img = last?.image, let dest = CGImageDestinationCreateWithURL(URL(fileURLWithPath: "/tmp/paddock-seq-\(tag).png") as CFURL, UTType.png.identifier as CFString, 1, nil) {
+        if let img = last?.image, let dest = CGImageDestinationCreateWithURL(URL(fileURLWithPath: "/tmp/labdock-seq-\(tag).png") as CFURL, UTType.png.identifier as CFString, 1, nil) {
             CGImageDestinationAddImage(dest, img, nil); CGImageDestinationFinalize(dest); print("snapshot", tag, "saved")
         }
     }
@@ -55,11 +55,11 @@ import VimClient
     }
     if pieces.contains("sendtext") {
         // The ⌘V typing path on a console without a clipboard: sendText through the stream.
-        let skipped = mks.sendText("paddock")
+        let skipped = mks.sendText("labdock")
         print("sendText skipped:", skipped)
         try await Task.sleep(for: .seconds(2))
         if let fb = await withCheckedContinuation({ (c: CheckedContinuation<MKSFramebuffer?, Never>) in c.resume(returning: mks.framebuffer) }),
-           let img = fb.image, let dest = CGImageDestinationCreateWithURL(URL(fileURLWithPath: "/tmp/paddock-seq-typed.png") as CFURL, UTType.png.identifier as CFString, 1, nil) {
+           let img = fb.image, let dest = CGImageDestinationCreateWithURL(URL(fileURLWithPath: "/tmp/labdock-seq-typed.png") as CFURL, UTType.png.identifier as CFString, 1, nil) {
             CGImageDestinationAddImage(dest, img, nil); CGImageDestinationFinalize(dest); print("snapshot typed saved")
         }
         for _ in 0..<7 { mks.sendKey(keysym: 0xFF08, down: true); mks.sendKey(keysym: 0xFF08, down: false) }   // backspace it away

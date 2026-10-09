@@ -1,4 +1,4 @@
-import PaddockCore
+import LabDockCore
 import SwiftUI
 import VimClient
 
@@ -75,7 +75,7 @@ struct SidebarView: View {
             }
             Button("Cancel", role: .cancel) { confirmingRemoval = nil }
         } message: {
-            Text("Paddock forgets the host and its saved guest logins. The virtual machines stay on the host.")
+            Text("LabDock forgets the host and its saved guest logins. The virtual machines stay on the host.")
         }
         .sheet(isPresented: $showingTrust) {
             if let host = trustHost {

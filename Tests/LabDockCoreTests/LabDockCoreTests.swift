@@ -1,11 +1,11 @@
 import Foundation
 import Testing
-@testable import PaddockCore
+@testable import LabDockCore
 import VimClient
 
 /// HostStore round-trips through JSON without touching anything secret.
 @Test func hostStoreRoundTrip() throws {
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("paddock-store-\(UUID().uuidString)")
+    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("labdock-store-\(UUID().uuidString)")
     let store = HostStore(directory: dir)
     #expect(try store.load().isEmpty)
     try store.save([
@@ -25,7 +25,7 @@ import VimClient
 @Test func keychainAccountNames() {
     #expect(Keychain.hostAccount(address: "192.0.2.4") == "host:192.0.2.4")
     #expect(Keychain.guestAccount(address: "192.0.2.4", vm: "vm-42") == "guest:192.0.2.4/vm-42")
-    #expect(Keychain.service == "Bestchaan.Paddock")
+    #expect(Keychain.service == "Bestchaan.LabDock")
 }
 
 /// Guest home folders per family.
@@ -49,7 +49,7 @@ import VimClient
 
 /// The lastSeen line only appears while the host is down.
 @MainActor @Test func lastSeenWording() {
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("paddock-model-\(UUID().uuidString)")
+    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("labdock-model-\(UUID().uuidString)")
     let host = HostModel(info: StoredHost(address: "10.9.9.9", user: "root", lastSeen: Date(timeIntervalSince1970: 1_789_000_000)))
     #expect(host.lastSeenLine == nil)                       // not down yet
     host.phase = .failed("Couldn't reach the host: no route")
@@ -62,20 +62,20 @@ import VimClient
 }
 
 
-/// A hosts.json that exists but isn't Paddock's JSON is an error, not an empty list.
+/// A hosts.json that exists but isn't LabDock's JSON is an error, not an empty list.
 @Test func corruptHostsFileThrows() throws {
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("paddock-store-\(UUID().uuidString)")
+    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("labdock-store-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     let store = HostStore(directory: dir)
     try Data("not json".utf8).write(to: store.url)
-    #expect(throws: PaddockError.self) { try store.load() }
+    #expect(throws: LabDockError.self) { try store.load() }
     try? FileManager.default.removeItem(at: dir)
 }
 
 /// A hosts.json written before the SHA-256 field decodes with thumbprintSHA256 nil; the first
 /// successful connection fills it in.
 @Test func legacyHostsFileDecodes() throws {
-    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("paddock-store-\(UUID().uuidString)")
+    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("labdock-store-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     let store = HostStore(directory: dir)
     let legacy = """

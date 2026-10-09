@@ -1,5 +1,5 @@
 import AppKit
-import PaddockCore
+import LabDockCore
 import SwiftUI
 import VimClient
 

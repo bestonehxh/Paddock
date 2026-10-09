@@ -54,10 +54,10 @@ import Testing
     #expect(GuestFileInfo(path: "C:\\Users\\lab\\a.txt", kind: .file, size: 1, modified: nil).name == "a.txt")
 }
 
-/// Against a real host when PADDOCK_HOST / PADDOCK_USER / PADDOCK_PASS are set.
+/// Against a real host when LABDOCK_HOST / LABDOCK_USER / LABDOCK_PASS are set.
 @Test func liveInventory() async throws {
     let env = ProcessInfo.processInfo.environment
-    guard let host = env["PADDOCK_HOST"], let user = env["PADDOCK_USER"], let pass = env["PADDOCK_PASS"] else { return }
+    guard let host = env["LABDOCK_HOST"], let user = env["LABDOCK_USER"], let pass = env["LABDOCK_PASS"] else { return }
     let s = VimSession(host: host, username: user, password: pass, expectedThumbprint: nil)
     let content = try await s.login()
     print("connected:", content.fullName, "thumbprint:", await s.transport.observedThumbprint?.sha1 ?? "-")

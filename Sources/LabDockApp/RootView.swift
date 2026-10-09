@@ -1,5 +1,5 @@
 import AppKit
-import PaddockCore
+import LabDockCore
 import SwiftUI
 
 /// The window: the flat 220 pt sidebar (hosts and their VMs) and the detail (bar + tab page).

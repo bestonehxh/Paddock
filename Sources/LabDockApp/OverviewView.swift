@@ -1,4 +1,4 @@
-import PaddockCore
+import LabDockCore
 import SwiftUI
 import VimClient
 
@@ -167,7 +167,7 @@ struct OverviewView: View {
                     .buttonStyle(.quietLink)
                     .font(Theme.detail)
             } else if host.hasGuestLogin(vm: vm) {
-                Text("saved, but the Keychain didn't let Paddock read it; click Allow when macOS asks").foregroundStyle(Theme.attention)
+                Text("saved, but the Keychain didn't let LabDock read it; click Allow when macOS asks").foregroundStyle(Theme.attention)
                 Button("Change") { showingGuestLogin = true }
                     .buttonStyle(.quietLink)
                     .font(Theme.detail)
@@ -275,7 +275,7 @@ struct GuestLoginSheet: View {
             SheetField("User") {
                 QuietTextField("User", text: $user, prompt: vm.guestFamily == .windows ? "Administrator" : "root")
             }
-            SheetField("Password", note: "Paddock stores it in the Keychain and nowhere else.") {
+            SheetField("Password", note: "LabDock stores it in the Keychain and nowhere else.") {
                 QuietTextField("Password", text: $password, prompt: "", secure: true)
             }
         } actions: {

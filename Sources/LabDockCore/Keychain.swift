@@ -1,11 +1,14 @@
 import Foundation
 import Security
 
-/// Generic passwords in the Keychain, service `Bestchaan.Paddock`. Accounts:
+/// Generic passwords in the Keychain, service `Bestchaan.LabDock`. Accounts:
 /// `host:<address>` for the ESXi login, `guest:<address>/<vm moref>` for guest logins.
 /// Nothing secret is ever written anywhere else.
 public enum Keychain {
-    public static let service = "Bestchaan.Paddock"
+    public static let service = "Bestchaan.LabDock"
+    /// The service before the rename to LabDock (9 Oct 2026). Its vault is read once (one prompt:
+    /// a different app is asking), rewritten under `service`, then deleted.
+    static let legacyService = "Bestchaan.Paddock"
     /// One Keychain item holds every secret as JSON (owner, 3 Oct 2026: the login keychain asks
     /// once per *item* per app signature, so one item per host and per guest meant a prompt for
     /// every VM; one vault item means one "Always Allow"). Older per-account items are read once
@@ -18,7 +21,7 @@ public enum Keychain {
     private static let lock = NSLock()
     private nonisolated(unsafe) static var cache: [String: String]?
 
-    private static func query(account: String) -> [String: Any] {
+    private static func query(account: String, service: String = service) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
          kSecAttrService as String: service,
          kSecAttrAccount as String: account]
@@ -34,6 +37,12 @@ public enum Keychain {
         var entries: [String: String] = [:]
         if let data = try readItem(account: vaultAccount) {
             entries = (try? JSONDecoder().decode([String: String].self, from: data)) ?? [:]
+        } else if let data = try? readItem(account: vaultAccount, service: legacyService),
+                  let old = try? JSONDecoder().decode([String: String].self, from: data) {
+            // First read as LabDock: bring the Paddock vault across, then drop the old item.
+            try writeVault(old)
+            SecItemDelete(query(account: vaultAccount, service: legacyService) as CFDictionary)
+            entries = old
         }
         // Fold in items from before the vault (they prompt once each, then are removed).
         var migrated = false
@@ -64,8 +73,8 @@ public enum Keychain {
         return rows.compactMap { $0[kSecAttrAccount as String] as? String }.filter { $0 != vaultAccount }
     }
 
-    private static func readItem(account: String) throws -> Data? {
-        var q = query(account: account)
+    private static func readItem(account: String, service: String = service) throws -> Data? {
+        var q = query(account: account, service: service)
         q[kSecReturnData as String] = true
         q[kSecMatchLimit as String] = kSecMatchLimitOne
         var item: CFTypeRef?
@@ -73,7 +82,7 @@ public enum Keychain {
         switch status {
         case errSecSuccess: return item as? Data
         case errSecItemNotFound: return nil
-        default: throw PaddockError.keychain(status)
+        default: throw LabDockError.keychain(status)
         }
     }
 
@@ -81,12 +90,12 @@ public enum Keychain {
         let data = try JSONEncoder().encode(entries)
         let status = SecItemUpdate(query(account: vaultAccount) as CFDictionary, [kSecValueData as String: data] as CFDictionary)
         if status == errSecSuccess { return }
-        guard status == errSecItemNotFound else { throw PaddockError.keychain(status) }
+        guard status == errSecItemNotFound else { throw LabDockError.keychain(status) }
         var attributes = query(account: vaultAccount)
         attributes[kSecValueData as String] = data
-        attributes[kSecAttrLabel as String] = "Paddock (ESXi hosts and guest logins)"
+        attributes[kSecAttrLabel as String] = "LabDock (ESXi hosts and guest logins)"
         let add = SecItemAdd(attributes as CFDictionary, nil)
-        guard add == errSecSuccess else { throw PaddockError.keychain(add) }
+        guard add == errSecSuccess else { throw LabDockError.keychain(add) }
     }
 
     private static func mutate(_ change: (inout [String: String]) -> Void) throws {
@@ -125,8 +134,8 @@ public enum Keychain {
     }
 }
 
-/// Paddock's own failures, as sentences.
-public enum PaddockError: Error, LocalizedError, Sendable {
+/// LabDock's own failures, as sentences.
+public enum LabDockError: Error, LocalizedError, Sendable {
     case keychain(OSStatus)
     case noPassword(String)
     case notSelected
@@ -138,14 +147,14 @@ public enum PaddockError: Error, LocalizedError, Sendable {
         switch self {
         case .keychain(let status):
             switch status {
-            case errSecUserCanceled, errSecAuthFailed: "The Keychain didn't let Paddock read the password; allow it when macOS asks"
+            case errSecUserCanceled, errSecAuthFailed: "The Keychain didn't let LabDock read the password; allow it when macOS asks"
             case errSecInteractionNotAllowed: "The Keychain is locked"
             default:
                 "The Keychain refused (\(SecCopyErrorMessageString(status, nil).map { $0 as String } ?? "status \(status)"))"
             }
         case .noPassword(let address): "No password for \(address) in the Keychain; add the host again"
         case .notSelected: "No virtual machine is selected"
-        case .hostsFileUnreadable(let path, let why): "Couldn't read \(path): \(why). Fix or remove the file, then open Paddock again"
+        case .hostsFileUnreadable(let path, let why): "Couldn't read \(path): \(why). Fix or remove the file, then open LabDock again"
         case .duplicateHost(let address): "\(address) is already in the list"
         case .noCertificate: "The host didn't present a certificate"
         }

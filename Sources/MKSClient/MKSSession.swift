@@ -111,11 +111,11 @@ public final class MKSSession: Sendable {
         // Diagnostics (owner's "Windows locks when I switch VMs", 3 Oct 2026): every key the
         // app sends. Debug level, not notice: keysyms read back as the typed characters, so
         // persisting them would leave everything typed in the console on disk. Turn on with
-        // `log config --subsystem Bestchaan.Paddock --mode "level:debug,persist:debug"`.
+        // `log config --subsystem Bestchaan.LabDock --mode "level:debug,persist:debug"`.
         Self.log.debug("key \(String(keysym, radix: 16), privacy: .public) \(down ? "down" : "up", privacy: .public)")
         Task { await connection.write(.key(keysym: keysym, down: down)) }
     }
-    private static let log = Logger(subsystem: "Bestchaan.Paddock", category: "mks")
+    private static let log = Logger(subsystem: "Bestchaan.LabDock", category: "mks")
     /// Keyboard by USB HID usage, as an XT keycode through the QEMU extended key event — for
     /// keys with no keysym. Does nothing when the usage has no XT scancode, or while the server
     /// has not confirmed the extension (it answers SetEncodings with an empty -258 pseudo-rect).
@@ -211,7 +211,7 @@ final class WebSocketWire: RFBWire, @unchecked Sendable {
         // minutes; the idle timeout must not tear it down. The handshake has its own 15 s deadline
         // and the ping below notices a dead path (review, 3 Oct 2026).
         config.timeoutIntervalForRequest = 3600
-        config.httpAdditionalHeaders = ["User-Agent": "Paddock/1.0"]
+        config.httpAdditionalHeaders = ["User-Agent": "LabDock/1.0"]
         session = URLSession(configuration: config, delegate: trust, delegateQueue: nil)
         var request = URLRequest(url: url)
         request.timeoutInterval = 3600

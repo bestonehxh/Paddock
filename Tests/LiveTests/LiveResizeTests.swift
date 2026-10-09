@@ -3,11 +3,11 @@ import MKSClient
 import Testing
 import VimClient
 
-/// Asks a Tools-equipped guest (PADDOCK_VM) to change its screen size and waits for `.resized`.
+/// Asks a Tools-equipped guest (LABDOCK_VM) to change its screen size and waits for `.resized`.
 @Test func liveDesktopResize() async throws {
     let env = ProcessInfo.processInfo.environment
-    guard let host = env["PADDOCK_HOST"], let user = env["PADDOCK_USER"], let pass = env["PADDOCK_PASS"],
-          let name = env["PADDOCK_VM"] else { return }
+    guard let host = env["LABDOCK_HOST"], let user = env["LABDOCK_USER"], let pass = env["LABDOCK_PASS"],
+          let name = env["LABDOCK_VM"] else { return }
     let s = VimSession(host: host, username: user, password: pass, expectedThumbprint: nil)
     try await s.login()
     guard let vm = try await s.listVMs().first(where: { $0.name == name }) else { Issue.record("no VM \(name)"); return }

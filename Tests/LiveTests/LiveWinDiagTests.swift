@@ -3,11 +3,11 @@ import Testing
 import VimClient
 
 /// Why does Windows lock when the console reopens? Reads the lock/sleep policy and the last
-/// lock events through Tools (PADDOCK_VM, PADDOCK_GUEST_USER/PASS).
+/// lock events through Tools (LABDOCK_VM, LABDOCK_GUEST_USER/PASS).
 @Test func liveWindowsLockDiagnostics() async throws {
     let env = ProcessInfo.processInfo.environment
-    guard let host = env["PADDOCK_HOST"], let user = env["PADDOCK_USER"], let pass = env["PADDOCK_PASS"],
-          let name = env["PADDOCK_VM"], let guser = env["PADDOCK_GUEST_USER"], let gpass = env["PADDOCK_GUEST_PASS"] else { return }
+    guard let host = env["LABDOCK_HOST"], let user = env["LABDOCK_USER"], let pass = env["LABDOCK_PASS"],
+          let name = env["LABDOCK_VM"], let guser = env["LABDOCK_GUEST_USER"], let gpass = env["LABDOCK_GUEST_PASS"] else { return }
     let s = VimSession(host: host, username: user, password: pass, expectedThumbprint: nil)
     try await s.login()
     guard let vm = try await s.listVMs().first(where: { $0.name == name }) else { return }

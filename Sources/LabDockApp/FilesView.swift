@@ -1,4 +1,4 @@
-import PaddockCore
+import LabDockCore
 import SwiftUI
 import VimClient
 import UniformTypeIdentifiers

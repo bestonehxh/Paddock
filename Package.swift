@@ -2,11 +2,11 @@
 import PackageDescription
 
 let package = Package(
-    name: "Paddock",
+    name: "LabDock",
     platforms: [.macOS(.v26)],
     products: [
-        // The macOS app (bundle it with Scripts/make-app.sh → build/Paddock.app).
-        .executable(name: "PaddockApp", targets: ["PaddockApp"]),
+        // The macOS app (bundle it with Scripts/make-app.sh → build/LabDock.app).
+        .executable(name: "LabDockApp", targets: ["LabDockApp"]),
     ],
     targets: [
         // vSphere SOAP (vim25) client: sessions, property collector, tasks, VM power and
@@ -15,17 +15,17 @@ let package = Package(
         // WebMKS console: RFB over WebSocket, framebuffer decoding, input.
         .target(name: "MKSClient"),
         // Hosts, Keychain, the observable model shared by the app.
-        .target(name: "PaddockCore", dependencies: ["VimClient", "MKSClient"]),
-        .executableTarget(name: "PaddockApp", dependencies: ["PaddockCore", "VimClient", "MKSClient"],
-                          path: "Sources/PaddockApp", exclude: ["Bundle"]),
+        .target(name: "LabDockCore", dependencies: ["VimClient", "MKSClient"]),
+        .executableTarget(name: "LabDockApp", dependencies: ["LabDockCore", "VimClient", "MKSClient"],
+                          path: "Sources/LabDockApp", exclude: ["Bundle"]),
         .testTarget(name: "VimClientTests", dependencies: ["VimClient"]),
         .testTarget(name: "MKSClientTests", dependencies: ["MKSClient"]),
-        // Against the lab ESXi only (PADDOCK_HOST / PADDOCK_USER / PADDOCK_PASS); skipped otherwise.
-        .testTarget(name: "LiveTests", dependencies: ["VimClient", "MKSClient", "PaddockCore"]),
-        .testTarget(name: "PaddockCoreTests", dependencies: ["PaddockCore"]),
-        // The in-app updater (Sources/PaddockApp/Update): version/tag rules, signatures, the
+        // Against the lab ESXi only (LABDOCK_HOST / LABDOCK_USER / LABDOCK_PASS); skipped otherwise.
+        .testTarget(name: "LiveTests", dependencies: ["VimClient", "MKSClient", "LabDockCore"]),
+        .testTarget(name: "LabDockCoreTests", dependencies: ["LabDockCore"]),
+        // The in-app updater (Sources/LabDockApp/Update): version/tag rules, signatures, the
         // install helper run for real in a scratch folder. No network.
-        .testTarget(name: "PaddockAppTests", dependencies: ["PaddockApp"]),
+        .testTarget(name: "LabDockAppTests", dependencies: ["LabDockApp"]),
     ],
     swiftLanguageModes: [.v6]
 )

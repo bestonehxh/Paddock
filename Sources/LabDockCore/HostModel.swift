@@ -96,7 +96,7 @@ public final class HostModel: Identifiable {
     private func makeSession() throws -> VimSession {
         if let session { return session }
         guard let password = try Keychain.password(for: Keychain.hostAccount(address: info.address)) else {
-            throw PaddockError.noPassword(info.address)
+            throw LabDockError.noPassword(info.address)
         }
         let session = VimSession(host: info.address, username: info.user, password: password,
                                  expectedThumbprint: info.thumbprint, expectedThumbprintSHA256: info.thumbprintSHA256)
@@ -175,7 +175,7 @@ public final class HostModel: Identifiable {
     }
 
     private func sentence(for error: Error) -> String {
-        (error as? VimError)?.errorDescription ?? (error as? PaddockError)?.errorDescription ?? error.localizedDescription
+        (error as? VimError)?.errorDescription ?? (error as? LabDockError)?.errorDescription ?? error.localizedDescription
     }
 
     private func persist() {

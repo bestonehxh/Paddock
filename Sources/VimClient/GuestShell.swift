@@ -4,8 +4,8 @@ import Foundation
 ///
 /// How it works: a small runner script is uploaded to a temporary folder in the guest and
 /// started as the saved guest user. It feeds an interactive `bash` (or `sh`, or PowerShell on
-/// Windows) from numbered command files that Paddock uploads, and the shell's combined output
-/// lands in `out`, which Paddock downloads and diffs every poll. State (cwd, variables, sudo
+/// Windows) from numbered command files that LabDock uploads, and the shell's combined output
+/// lands in `out`, which LabDock downloads and diffs every poll. State (cwd, variables, sudo
 /// timestamps) survives between commands because it is one shell process. Round trip is about
 /// one second; full-screen programs (vi, top) don't work since stdin isn't a terminal.
 public actor GuestShell {
@@ -33,7 +33,7 @@ public actor GuestShell {
     /// Creates the guest folder, uploads the runner and starts the shell.
     public func start() async throws {
         guard !started else { return }
-        dir = try await session.createTemporaryDirectory(vm: vm, login: login, prefix: "paddock-shell-")
+        dir = try await session.createTemporaryDirectory(vm: vm, login: login, prefix: "labdock-shell-")
         if family == .windows {
             try await session.makeDirectory(vm: vm, login: login, path: path("cmd"))
             let runner = Self.windowsRunner(dir: dir)
@@ -87,7 +87,7 @@ public actor GuestShell {
         }
         outputOffset += chunk.count
         var text = String(decoding: chunk, as: UTF8.self)
-        if text.contains("[paddock shell ended]") { ended = true }
+        if text.contains("[labdock shell ended]") { ended = true }
         if family == .windows { text = text.replacingOccurrences(of: "\r\n", with: "\n") }
         return text
     }
@@ -125,7 +125,7 @@ public actor GuestShell {
         cd "$HOME" 2>/dev/null
         if command -v \(shell) >/dev/null 2>&1; then SH=\(shell); else SH=sh; fi
         feed | "$SH" -i > "$D/out" 2>&1
-        echo '[paddock shell ended]' >> "$D/out"
+        echo '[labdock shell ended]' >> "$D/out"
         """
     }
 
@@ -154,7 +154,7 @@ public actor GuestShell {
             Start-Sleep -Milliseconds 200
           }
         }
-        '[paddock shell ended]' | Out-File -FilePath $out -Append -Encoding utf8
+        '[labdock shell ended]' | Out-File -FilePath $out -Append -Encoding utf8
         """
     }
 }

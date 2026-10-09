@@ -9,12 +9,12 @@ import VimClient
 /// Connects the console of a powered-on VM and waits for the first frame. Needs the env vars.
 @Test func liveConsoleFirstFrame() async throws {
     let env = ProcessInfo.processInfo.environment
-    guard let host = env["PADDOCK_HOST"], let user = env["PADDOCK_USER"], let pass = env["PADDOCK_PASS"] else { return }
+    guard let host = env["LABDOCK_HOST"], let user = env["LABDOCK_USER"], let pass = env["LABDOCK_PASS"] else { return }
     let s = VimSession(host: host, username: user, password: pass, expectedThumbprint: nil)
     try await s.login()
     let thumb = await s.transport.observedThumbprint?.sha1
     let vms = try await s.listVMs()
-    let wanted = env["PADDOCK_VM"]
+    let wanted = env["LABDOCK_VM"]
     guard let vm = vms.first(where: { wanted == nil ? $0.powerState == .poweredOn : $0.name == wanted }) else {
         Issue.record("no powered-on VM"); return
     }
@@ -36,7 +36,7 @@ import VimClient
             frames += 1
             if frames == 1 || frames % 20 == 0 { print("frame", frames, fb.width, "x", fb.height, "dirty", dirty) }
             if !saved, let img = fb.image, frames >= 3 {
-                let out = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("paddock-console.png")
+                let out = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("labdock-console.png")
                 if let dest = CGImageDestinationCreateWithURL(out as CFURL, UTType.png.identifier as CFString, 1, nil) {
                     CGImageDestinationAddImage(dest, img, nil)
                     CGImageDestinationFinalize(dest)

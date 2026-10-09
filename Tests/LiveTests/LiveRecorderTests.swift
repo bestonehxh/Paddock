@@ -6,14 +6,14 @@ import Testing
 import UniformTypeIdentifiers
 import VimClient
 
-/// Records the console for PADDOCK_RECORD_SECONDS: a timestamped PNG whenever a frame arrives
-/// (at most 2/s) into /tmp/paddock-rec/, plus a log line per frame. Used to catch the moment
+/// Records the console for LABDOCK_RECORD_SECONDS: a timestamped PNG whenever a frame arrives
+/// (at most 2/s) into /tmp/labdock-rec/, plus a log line per frame. Used to catch the moment
 /// Windows locks while the owner reproduces the switch in the app.
 @Test func liveConsoleRecorder() async throws {
     let env = ProcessInfo.processInfo.environment
-    guard let host = env["PADDOCK_HOST"], let user = env["PADDOCK_USER"], let pass = env["PADDOCK_PASS"], let name = env["PADDOCK_VM"] else { return }
-    let seconds = Double(env["PADDOCK_RECORD_SECONDS"] ?? "60") ?? 60
-    let dir = URL(fileURLWithPath: "/tmp/paddock-rec")
+    guard let host = env["LABDOCK_HOST"], let user = env["LABDOCK_USER"], let pass = env["LABDOCK_PASS"], let name = env["LABDOCK_VM"] else { return }
+    let seconds = Double(env["LABDOCK_RECORD_SECONDS"] ?? "60") ?? 60
+    let dir = URL(fileURLWithPath: "/tmp/labdock-rec")
     try? FileManager.default.removeItem(at: dir)
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     let s = VimSession(host: host, username: user, password: pass, expectedThumbprint: nil)

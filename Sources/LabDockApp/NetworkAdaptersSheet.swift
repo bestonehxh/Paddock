@@ -1,4 +1,4 @@
-import PaddockCore
+import LabDockCore
 import SwiftUI
 import VimClient
 
@@ -107,7 +107,7 @@ struct NetworkAdaptersSheet: View {
                         get: { draft.network },
                         set: { drafts[adapter.key] = Draft(network: $0, connected: draft.connected, startConnected: draft.startConnected) }
                     ), maxWidth: 280) {
-                        // An empty name means a backing Paddock can't name (a distributed
+                        // An empty name means a backing LabDock can't name (a distributed
                         // switch): keep it selectable so Save never rewrites it by accident.
                         if adapter.network.isEmpty || portGroups.isEmpty {
                             Text("—").tag("")

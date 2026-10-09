@@ -43,7 +43,7 @@ public final class SOAPTransport: Sendable {
         config.httpCookieAcceptPolicy = .never
         config.timeoutIntervalForRequest = 60
         config.timeoutIntervalForResource = 3600
-        config.httpAdditionalHeaders = ["User-Agent": "Paddock/1.0"]
+        config.httpAdditionalHeaders = ["User-Agent": "LabDock/1.0"]
         session = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
     }
 
