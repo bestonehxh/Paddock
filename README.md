@@ -70,9 +70,18 @@ Scripts/make-app.sh        # → build/LabDock.app
 Swift 6, macOS 26 SDK. The package has four modules: `VimClient` (vSphere SOAP), `MKSClient`
 (WebMKS / RFB console), `LabDockCore` (hosts, Keychain, app model) and the SwiftUI app.
 
+## The Lab family 🧪
+
+LabDock is one of the Lab apps — the servers and hypervisor control a network lab needs, native on the Mac:
+
+|  | App | What it does |
+|---|---|---|
+| <img src="https://raw.githubusercontent.com/bestonehxh/LabDC/main/.github/icon.png?v=2" width="48" height="48" alt="LabDC"> | **[LabDC](https://github.com/bestonehxh/LabDC)**<br>[⬇️ Download](https://github.com/bestonehxh/LabDC/releases/latest) | Active Directory–compatible domain controller with RADIUS for 802.1X and a lab CA |
+| <img src="https://raw.githubusercontent.com/bestonehxh/LabDock/main/.github/icon.png?v=1" width="48" height="48" alt="LabDock"> | **[LabDock](https://github.com/bestonehxh/LabDock)**<br>[⬇️ Download](https://github.com/bestonehxh/LabDock/releases/latest) | VM control and console for standalone ESXi hosts — power, snapshots, guest files and scripts, no vCenter |
+
 ## The Sheep family 🐑
 
-LabDock sits next to a few small native macOS apps for network engineers:
+Small native macOS apps for network engineers:
 
 |  | App | What it does |
 |---|---|---|
@@ -81,12 +90,6 @@ LabDock sits next to a few small native macOS apps for network engineers:
 | <img src="https://raw.githubusercontent.com/bestonehxh/SheepDrop/main/.github/icon.png?v=3" width="48" height="48" alt="SheepDrop"> | **[SheepDrop](https://github.com/bestonehxh/SheepDrop)**<br>[⬇️ Download](https://github.com/bestonehxh/SheepDrop/releases/latest) | SFTP / SCP / FTP / TFTP file transfer — client and built-in server |
 | <img src="https://raw.githubusercontent.com/bestonehxh/SheepTap/main/.github/icon.png?v=3" width="48" height="48" alt="SheepTap"> | **[SheepTap](https://github.com/bestonehxh/SheepTap)**<br>[⬇️ Download](https://github.com/bestonehxh/SheepTap/releases/latest) | Menu-bar viewer for your Mac's network interfaces with click-to-copy |
 | <img src="https://raw.githubusercontent.com/bestonehxh/SheepPing/main/.github/icon.png?v=3" width="48" height="48" alt="SheepPing"> | **[SheepPing](https://github.com/bestonehxh/SheepPing)**<br>[⬇️ Download](https://github.com/bestonehxh/SheepPing/releases/latest) | Continuous multi-host ping monitor with per-host logs and CSV export |
-| <img src="https://raw.githubusercontent.com/bestonehxh/SheepArt/main/.github/icon.png?v=3" width="48" height="48" alt="SheepArt"> | **[SheepArt](https://github.com/bestonehxh/SheepArt)**<br>[⬇️ Download](https://github.com/bestonehxh/SheepArt/releases/latest) | Screenshot annotation — draw, crop, layers, one-key background removal |
-| <img src="https://raw.githubusercontent.com/bestonehxh/SheepRadius/main/.github/icon.png?v=4" width="48" height="48" alt="SheepRadius"> | **[SheepRadius](https://github.com/bestonehxh/SheepRadius)**<br>[⬇️ Download](https://github.com/bestonehxh/SheepRadius/releases/latest) | RADIUS + LDAP lab for 802.1X, device logins and NAC — with a joinable Samba AD |
-| <img src="https://raw.githubusercontent.com/bestonehxh/SheepKey/main/.github/icon.png?v=3" width="48" height="48" alt="SheepKey"> | **[SheepKey](https://github.com/bestonehxh/SheepKey)**<br>[⬇️ Download](https://github.com/bestonehxh/SheepKey/releases/latest) | Mac shortcuts (⌘ as Ctrl) inside AnyDesk, TeamViewer and RustDesk |
-| <img src="https://raw.githubusercontent.com/bestonehxh/LabDC/main/.github/icon.png" width="48" height="48" alt="LabDC"> | **[LabDC](https://github.com/bestonehxh/LabDC)**<br>[⬇️ Download](https://github.com/bestonehxh/LabDC/releases/latest) | Active Directory–compatible domain controller with RADIUS for 802.1X and a lab CA |
-| <img src="https://raw.githubusercontent.com/bestonehxh/SheepLog/main/.github/icon.png?v=2" width="48" height="48" alt="UncleSpy"> | **[UncleSpy](https://github.com/bestonehxh/SheepLog)**<br>[⬇️ Download](https://github.com/bestonehxh/SheepLog/releases/latest) | Syslog viewer, SNMP tester and packet capture with TCP and 802.1X ladder diagrams — and a Troubleshoot page that reads all three |
-| <img src="https://raw.githubusercontent.com/bestonehxh/LabDock/main/.github/icon.png" width="48" height="48" alt="LabDock"> | **[LabDock](https://github.com/bestonehxh/LabDock)**<br>[⬇️ Download](https://github.com/bestonehxh/LabDock/releases/latest) | VM control and console for standalone ESXi hosts — power, snapshots, guest files and scripts, no vCenter |
 
 ## License
 
