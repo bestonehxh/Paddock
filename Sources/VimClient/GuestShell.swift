@@ -66,21 +66,26 @@ public actor GuestShell {
     }
 
     /// New output since the last poll (empty when nothing happened). Sets `ended` when the
-    /// shell exited (the user typed `exit`, or the runner stopped).
+    /// shell exited (the user typed `exit`, or the runner stopped). Asks the host for the file
+    /// from the last offset on, so a long session doesn't re-download everything it has ever
+    /// printed; a host that ignores the Range header still works (the whole file is diffed).
     public func poll() async throws -> String {
         guard started else { return "" }
-        let data: Data
+        let result: (data: Data, partial: Bool)
         do {
-            data = try await session.download(path("out"), vm: vm, login: login)
+            result = try await session.download(path("out"), from: Int64(outputOffset), vm: vm, login: login)
         } catch VimError.fault(let type, _) where type == "FileNotFound" || type == "FileFault" {
             return ""   // the shell hasn't written anything yet
         }
-        guard data.count > outputOffset else {
-            if data.count < outputOffset { outputOffset = 0 }   // the file was replaced
-            return ""
+        let chunk: Data
+        if result.partial {
+            chunk = result.data
+        } else {
+            guard result.data.count != outputOffset else { return "" }
+            if result.data.count < outputOffset { outputOffset = 0 }   // the file was replaced
+            chunk = result.data[outputOffset...]
         }
-        let chunk = data[outputOffset...]
-        outputOffset = data.count
+        outputOffset += chunk.count
         var text = String(decoding: chunk, as: UTF8.self)
         if text.contains("[paddock shell ended]") { ended = true }
         if family == .windows { text = text.replacingOccurrences(of: "\r\n", with: "\n") }

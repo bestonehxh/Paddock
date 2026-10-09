@@ -23,6 +23,18 @@ swift build -c "$config" --product PaddockApp $strip_paths
 bin="$(swift build -c "$config" --show-bin-path $strip_paths)/PaddockApp"
 [ -x "$bin" ] || { echo "make-app: $bin missing" >&2; exit 1; }
 
+# Every build bumps the build number (owner, 3 Oct 2026: "1.0(1) 1.0(2) …"): the marketing
+# version in Info.plist stays 1.0 until the owner changes it, CFBundleVersion counts up. The
+# number lives in the source Info.plist, so the repo carries it across builds.
+# KEEP_BUILD_NUMBER=1 (the release script, which sets the version itself) builds it unchanged.
+build_number="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$bundle_src/Info.plist" 2>/dev/null || echo 0)"
+if [ "${KEEP_BUILD_NUMBER:-0}" != "1" ]; then
+    build_number=$((build_number + 1))
+    plutil -replace CFBundleVersion -string "$build_number" "$bundle_src/Info.plist"
+fi
+short_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$bundle_src/Info.plist" 2>/dev/null || echo "1.0")"
+echo "make-app: version $short_version ($build_number)"
+
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp "$bin" "$app/Contents/MacOS/Paddock"
@@ -44,17 +56,31 @@ done
 iconutil -c icns -o "$app/Contents/Resources/AppIcon.icns" "$iconset"
 rm -rf "$(dirname "$iconset")"
 
-# Sign with the local "Paddock Dev" identity when it exists (a self-signed code-signing cert in
-# the login keychain, made 3 Oct 2026): its designated requirement is stable, so the Keychain
-# stops asking "Paddock wants to use your confidential information" after every rebuild. An
-# ad-hoc signature changes with each build and triggers that prompt every time.
-identity="${SIGN_IDENTITY:-Paddock Dev}"
-if security find-identity -v -p codesigning 2>/dev/null | grep -q "\"$identity\"" \
-   && codesign --force --sign "$identity" --timestamp=none "$app" >/dev/null 2>&1; then
-    echo "make-app: signed as $identity"
+# Sign with the owner's Apple Development identity (bestchaan@gmail.com) when it exists: its
+# designated requirement is stable, so the Keychain stops asking "Paddock wants to use your
+# confidential information" after every rebuild (an ad-hoc signature changes with each build and
+# triggers that prompt every time). Falls back to the self-signed "Paddock Dev" cert made for
+# the same reason, then to ad-hoc. SIGN_IDENTITY=… overrides the order.
+preferred="${SIGN_IDENTITY:-}"
+if [ -z "$preferred" ]; then
+    preferred="$(security find-identity -v -p codesigning 2>/dev/null \
+        | sed -n 's/^ *[0-9]*) [0-9A-F]* "\(Apple Development:[^"]*\)"/\1/p' | head -1)"
+fi
+
+sign_with() {
+    identity="$1"
+    [ -n "$identity" ] || return 1
+    security find-identity -v -p codesigning 2>/dev/null | grep -qF "\"$identity\"" || return 1
+    codesign --force --sign "$identity" --timestamp=none "$app" >/dev/null 2>&1
+}
+
+if sign_with "$preferred"; then
+    echo "make-app: signed as $preferred"
+elif sign_with "Paddock Dev"; then
+    echo "make-app: signed as Paddock Dev"
 else
     codesign --force --sign - --timestamp=none "$app" >/dev/null 2>&1 || echo "make-app: ad-hoc signing failed (the app still runs locally)"
-    echo "make-app: signed ad-hoc (no '$identity' identity in the keychain)"
+    echo "make-app: signed ad-hoc (no usable identity in the keychain)"
 fi
-echo "make-app: built $app"
+echo "make-app: built $app (version $short_version, build $build_number)"
 echo "make-app: open it with: open '$app'   (data: ~/Library/Application Support/Paddock)"

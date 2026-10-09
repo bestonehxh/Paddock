@@ -24,11 +24,13 @@ public actor VimSession {
         public var hostName: String?
     }
 
-    public init(host: String, port: Int = 443, username: String, password: String, expectedThumbprint: String?) {
+    public init(host: String, port: Int = 443, username: String, password: String, expectedThumbprint: String?,
+                expectedThumbprintSHA256: String? = nil) {
         self.host = host
         self.username = username
         self.password = password
-        transport = SOAPTransport(host: host, port: port, expectedThumbprint: expectedThumbprint)
+        transport = SOAPTransport(host: host, port: port, expectedThumbprint: expectedThumbprint,
+                                  expectedThumbprintSHA256: expectedThumbprintSHA256)
     }
 
     public var serviceContent: ServiceContent? { content }

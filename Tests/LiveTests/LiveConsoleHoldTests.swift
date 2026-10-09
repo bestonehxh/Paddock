@@ -14,7 +14,8 @@ import VimClient
     let vms = try await s.listVMs()
     guard let vm = vms.first(where: { $0.powerState == .poweredOn && !$0.inaccessible }) else { return }
     let ticket = try await s.consoleTicket(vm: vm.ref)
-    let mks = MKSSession(url: ticket.url, expectedThumbprint: s.transport.observedThumbprint?.sha1)
+    guard let ticketURL = ticket.url else { Issue.record("unusable ticket URL"); return }
+    let mks = MKSSession(url: ticketURL, expectedThumbprint: s.transport.observedThumbprint?.sha1)
     mks.connect()
     let start = ContinuousClock.now
     var frames = 0

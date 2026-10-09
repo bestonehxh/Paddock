@@ -20,7 +20,8 @@ import VimClient
     try await s.login()
     guard let vm = try await s.listVMs().first(where: { $0.name == name }) else { return }
     let ticket = try await s.consoleTicket(vm: vm.ref)
-    let mks = MKSSession(url: ticket.url, expectedThumbprint: s.transport.observedThumbprint?.sha1)
+    guard let ticketURL = ticket.url else { Issue.record("unusable ticket URL"); return }
+    let mks = MKSSession(url: ticketURL, expectedThumbprint: s.transport.observedThumbprint?.sha1)
     mks.connect()
     let stopper = Task { try? await Task.sleep(for: .seconds(seconds)); mks.disconnect() }
     var lastSave = Date.distantPast

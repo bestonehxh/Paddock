@@ -20,8 +20,9 @@ import VimClient
     }
     print("console of", vm.name, vm.ref)
     let ticket = try await s.consoleTicket(vm: vm.ref)
-    print("ticket url", ticket.url)
-    let mks = MKSSession(url: ticket.url, expectedThumbprint: thumb)
+    guard let ticketURL = ticket.url else { Issue.record("unusable ticket URL"); return }
+    print("ticket url", ticketURL)
+    let mks = MKSSession(url: ticketURL, expectedThumbprint: thumb)
     mks.connect()
     var frames = 0
     var saved = false

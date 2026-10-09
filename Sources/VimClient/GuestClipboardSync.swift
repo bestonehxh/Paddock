@@ -44,8 +44,7 @@ public actor GuestClipboardSync {
             let runner = path("watch.sh")
             try await session.upload(Data(Self.posixWatcher(dir: dir, darwin: family == .darwin).utf8), to: runner, vm: vm, login: login,
                                      family: family, executable: true)
-            processID = try await session.startProgram(vm: vm, login: login, program: "/bin/sh", arguments: "\"\(runner)\" > \"\(path("watch.log"))\" 2>&1",
-                                               environment: family == .darwin ? [] : ["DISPLAY=:0", "XDG_RUNTIME_DIR=/run/user/1000", "WAYLAND_DISPLAY=wayland-0"])
+            processID = try await session.startProgram(vm: vm, login: login, program: "/bin/sh", arguments: "\"\(runner)\" > \"\(path("watch.log"))\" 2>&1")
         }
         started = true
     }
@@ -156,6 +155,11 @@ public actor GuestClipboardSync {
         return """
         #!/bin/sh
         D='\(dir)'
+        # Tools passes on almost no environment: the desktop session's display is resolved in
+        # the guest, and the runtime dir belongs to the user's uid, not a hard-coded 1000.
+        DISPLAY="${DISPLAY:-:0}"; export DISPLAY
+        WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}"; export WAYLAND_DISPLAY
+        XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"; export XDG_RUNTIME_DIR
         seq=0
         : > "$D/last"
         if command -v wl-paste >/dev/null 2>&1 || command -v xclip >/dev/null 2>&1 || command -v xsel >/dev/null 2>&1 || command -v pbpaste >/dev/null 2>&1; then echo clip > "$D/up"; else echo noclip > "$D/up"; fi

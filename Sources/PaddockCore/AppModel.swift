@@ -8,6 +8,7 @@ public struct HostProbe: Sendable {
     public var product: String       // "VMware ESXi 8.0.2 build-…"
     public var version: String       // "8.0.2"
     public var thumbprintSHA1: String
+    public var thumbprintSHA256: String
     public var certificateSubject: String?
 }
 
@@ -214,7 +215,8 @@ public final class AppModel {
         let raw = content.apiVersion.isEmpty ? session.transport.apiVersion : content.apiVersion
         let version = raw.hasSuffix(".0") && raw.count > 4 ? String(raw.dropLast(2)) : raw
         return HostProbe(product: content.fullName, version: version,
-                         thumbprintSHA1: thumbprint.sha1, certificateSubject: subject)
+                         thumbprintSHA1: thumbprint.sha1, thumbprintSHA256: thumbprint.sha256,
+                         certificateSubject: subject)
     }
 
     /// Saves the host (JSON + Keychain) and starts polling it. `pin` false leaves the thumbprint
@@ -225,7 +227,9 @@ public final class AppModel {
         guard !hosts.contains(where: { $0.address == address }) else { throw PaddockError.duplicateHost(address) }
         if let storeError { throw PaddockError.hostsFileUnreadable(store.url.path, storeError) }
         try Keychain.setPassword(password, for: Keychain.hostAccount(address: address))
-        let info = StoredHost(address: address, user: user, thumbprint: pin ? probe.thumbprintSHA1 : nil)
+        let info = StoredHost(address: address, user: user,
+                              thumbprint: pin ? probe.thumbprintSHA1 : nil,
+                              thumbprintSHA256: pin ? probe.thumbprintSHA256 : nil)
         let model = makeHost(info)
         hosts.append(model)
         hosts.sort { $0.address.localizedStandardCompare($1.address) == .orderedAscending }

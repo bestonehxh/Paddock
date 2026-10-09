@@ -210,5 +210,7 @@ public struct ConsoleTicket: Sendable, Hashable {
     public var host: String
     public var port: Int
     public var sslThumbprint: String?
-    public var url: URL { URL(string: "wss://\(host):\(port)/ticket/\(ticket)")! }
+    /// nil when the pieces can't form a URL; the console then refuses the ticket with a
+    /// sentence instead of crashing.
+    public var url: URL? { URL(string: "wss://\(host):\(port)/ticket/\(ticket)") }
 }

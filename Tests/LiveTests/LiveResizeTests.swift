@@ -13,7 +13,8 @@ import VimClient
     guard let vm = try await s.listVMs().first(where: { $0.name == name }) else { Issue.record("no VM \(name)"); return }
     print("vm", vm.name, vm.tools.word)
     let ticket = try await s.consoleTicket(vm: vm.ref)
-    let mks = MKSSession(url: ticket.url, expectedThumbprint: s.transport.observedThumbprint?.sha1)
+    guard let ticketURL = ticket.url else { Issue.record("unusable ticket URL"); return }
+    let mks = MKSSession(url: ticketURL, expectedThumbprint: s.transport.observedThumbprint?.sha1)
     mks.connect()
     var frames = 0
     var sizes: [(Int, Int)] = []

@@ -18,47 +18,52 @@ struct SidebarView: View {
 
     var body: some View {
         @Bindable var model = model
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Hosts")
-                .font(Theme.caption)
-                .tracking(0.6)
-                .textCase(.uppercase)
-                .foregroundStyle(Theme.faint)
-                .padding(.bottom, 10)
-            FilterWords(selection: $model.filter)
-                .padding(.bottom, 14)
-            if let storeError = model.storeError {
-                Text(storeError)
+        GeometryReader { geometry in
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Hosts")
                     .font(Theme.caption)
-                    .foregroundStyle(Theme.attention)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.bottom, 12)
-            }
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(model.hosts) { host in
-                        HostSection(host: host,
-                                    collapsed: collapsed.contains(host.address),
-                                    onToggle: { toggle(host) },
-                                    onTrust: { trustHost = host; showingTrust = true },
-                                    onRemove: { confirmingRemoval = host },
-                                    onNetworking: { networkingHost = host })
-                    }
+                    .tracking(0.6)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Theme.faint)
+                    .padding(.bottom, 10)
+                FilterWords(selection: $model.filter)
+                    .padding(.bottom, 14)
+                if let storeError = model.storeError {
+                    Text(storeError)
+                        .font(Theme.caption)
+                        .foregroundStyle(Theme.attention)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.bottom, 12)
                 }
-                .padding(.trailing, 12)   // clear of the scroll indicator
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(model.hosts) { host in
+                            HostSection(host: host,
+                                        collapsed: collapsed.contains(host.address),
+                                        onToggle: { toggle(host) },
+                                        onTrust: { trustHost = host; showingTrust = true },
+                                        onRemove: { confirmingRemoval = host },
+                                        onNetworking: { networkingHost = host },
+                                    onRefresh: { host.refreshNow() })
+                        }
+                    }
+                    .padding(.trailing, 12)   // clear of the scroll indicator
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .defaultScrollAnchor(.top)
+                Spacer(minLength: 16)
+                Button("Add host…") { showingAddHost = true }
+                    .buttonStyle(.quietLink)
+                    .font(Theme.body)
             }
-            .scrollBounceBehavior(.basedOnSize)
-            .defaultScrollAnchor(.top)
-            Spacer(minLength: 16)
-            Button("Add host…") { showingAddHost = true }
-                .buttonStyle(.quietLink)
-                .font(Theme.body)
+            // NSWindow's safe area animates with the title bar. Ease out the 32 pt
+            // windowed inset so HOSTS travels 18 pt, from 30 pt to 12 pt overall.
+            .padding(.top, 12 - geometry.safeAreaInsets.top * 0.4375)
+            .padding(.leading, 24)
+            .padding(.trailing, 4)
+            .padding(.bottom, 20)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(.top, model.windowFullScreen ? 12 : 30)   // under the traffic lights; higher in full screen
-        .padding(.leading, 24)
-        .padding(.trailing, 4)
-        .padding(.bottom, 20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .confirmationDialog(
             "Remove \(confirmingRemoval?.address ?? "")?",
             isPresented: Binding(get: { confirmingRemoval != nil }, set: { if !$0 { confirmingRemoval = nil } }),
@@ -83,7 +88,7 @@ struct SidebarView: View {
     }
 
     private func toggle(_ host: HostModel) {
-        withAnimation(.easeOut(duration: 0.15)) {
+        withAnimation(.easeOut(duration: 0.1)) {
             if collapsed.contains(host.address) { collapsed.remove(host.address) } else { collapsed.insert(host.address) }
         }
     }
@@ -115,6 +120,7 @@ struct HostSection: View {
     let onTrust: () -> Void
     let onRemove: () -> Void
     var onNetworking: () -> Void = {}
+    var onRefresh: () -> Void = {}
 
     /// The filter applied; VMs ESXi can't open sink to the bottom so the real ones come first.
     private var shownVMs: [VMSummary] {
@@ -130,6 +136,18 @@ struct HostSection: View {
             .buttonStyle(.plain)
             .padding(.bottom, 6)
             .accessibilityLabel("\(host.address), \(collapsed ? "folded" : "unfolded")")
+            // A host that isn't answering: the poll loop retries on its own (10 s doubling
+            // to 2 min), but the word is here to make it try this second.
+            if case .failed = host.phase {
+                HStack {
+                    Button("Refresh now") { onRefresh() }
+                        .buttonStyle(.quietLink)
+                        .font(Theme.caption)
+                    Spacer(minLength: 0)
+                }
+                .padding(.leading, 14)
+                .padding(.bottom, 6)
+            }
             if !collapsed {
                 ForEach(shownVMs) { vm in
                     VMRow(host: host, vm: vm)
@@ -281,12 +299,12 @@ struct TrustSheet: View {
         QuietSheet(title: "The certificate of \(host.address) changed",
                    subtitle: "This can mean the host was reinstalled, or that something is answering in its place.",
                    failure: failure) {
-            if case .needsTrust(let expected, let actual) = host.phase {
+            if case .needsTrust(let expected, let actual, let hash) = host.phase {
                 VStack(alignment: .leading, spacing: 12) {
-                    SheetField("Expected SHA-1") {
+                    SheetField("Expected \(hash)") {
                         Text(expected).font(Theme.mono).foregroundStyle(Theme.ink).textSelection(.enabled)
                     }
-                    SheetField("Presented now") {
+                    SheetField("Presented \(hash) now") {
                         Text(actual).font(Theme.mono).foregroundStyle(Theme.attention).textSelection(.enabled)
                     }
                 }

@@ -62,21 +62,26 @@ public struct MKSButtons: OptionSet, Sendable {
 public final class MKSSession: Sendable {
     public let url: URL
     public let expectedThumbprint: String?
+    public let expectedThumbprintSHA256: String?
 
     /// - Parameters:
     ///   - url: the ticket URL (`wss://host:443/ticket/<ticket>`).
     ///   - expectedThumbprint: the host certificate SHA-1 thumbprint to accept (colon-separated
     ///     hex), or nil to accept whatever the host presents.
-    public init(url: URL, expectedThumbprint: String?) {
+    ///   - expectedThumbprintSHA256: the same certificate's SHA-256; once known it decides on
+    ///     its own (same certificate, stronger hash).
+    public init(url: URL, expectedThumbprint: String?, expectedThumbprintSHA256: String? = nil) {
         self.url = url
         self.expectedThumbprint = expectedThumbprint
+        self.expectedThumbprintSHA256 = expectedThumbprintSHA256
         // Unbounded: a dropped `.state(.connected)` or `.clipboard` is worse than a short queue.
         // The two events that can flood (frames, cursor positions) are coalesced in the actor
         // (newest wins, ~30 and ~60 per second), and the view consumes before `connect()`.
         let (stream, continuation) = AsyncStream<MKSEvent>.makeStream(bufferingPolicy: .unbounded)
         eventStream = stream
         connection = Connection(continuation: continuation, boxes: stateBoxes,
-                                makeWire: { WebSocketWire(url: url, expectedThumbprint: expectedThumbprint) })
+                                makeWire: { WebSocketWire(url: url, expectedSHA1: expectedThumbprint,
+                                                          expectedSHA256: expectedThumbprintSHA256) })
     }
 
     /// Frames, state changes, cursor updates. One stream for the session's life: every access
@@ -104,8 +109,10 @@ public final class MKSSession: Sendable {
     /// Keyboard: X11 keysym (RFB KeyEvent). Use `MKSKeyMap` to translate macOS key codes.
     public func sendKey(keysym: UInt32, down: Bool) {
         // Diagnostics (owner's "Windows locks when I switch VMs", 3 Oct 2026): every key the
-        // app sends, readable with `log show --predicate 'subsystem == "Bestchaan.Paddock"'`.
-        Self.log.notice("key \(String(keysym, radix: 16), privacy: .public) \(down ? "down" : "up", privacy: .public)")
+        // app sends. Debug level, not notice: keysyms read back as the typed characters, so
+        // persisting them would leave everything typed in the console on disk. Turn on with
+        // `log config --subsystem Bestchaan.Paddock --mode "level:debug,persist:debug"`.
+        Self.log.debug("key \(String(keysym, radix: 16), privacy: .public) \(down ? "down" : "up", privacy: .public)")
         Task { await connection.write(.key(keysym: keysym, down: down)) }
     }
     private static let log = Logger(subsystem: "Bestchaan.Paddock", category: "mks")
@@ -196,8 +203,8 @@ final class WebSocketWire: RFBWire, @unchecked Sendable {
     /// wire has nothing to add to the error.
     var failureReason: String? { trust.pinFailure ?? closeReason.value }
 
-    init(url: URL, expectedThumbprint: String?) {
-        let trust = TrustDelegate(expectedSHA1: expectedThumbprint)
+    init(url: URL, expectedSHA1: String?, expectedSHA256: String? = nil) {
+        let trust = TrustDelegate(expectedSHA1: expectedSHA1, expectedSHA256: expectedSHA256)
         self.trust = trust
         let config = URLSessionConfiguration.ephemeral
         // A console with nothing changing (a login prompt, a BIOS screen) sends nothing for
@@ -248,13 +255,15 @@ final class WebSocketWire: RFBWire, @unchecked Sendable {
         session.finishTasksAndInvalidate()
     }
 
-    /// SHA-1 thumbprint pinning, mirroring VimClient's `SOAPTransport`: accept whatever the host
-    /// presents when there is no pin, otherwise require a match.
+    /// Thumbprint pinning, mirroring VimClient's `SOAPTransport`: the SHA-256 pin decides once
+    /// known, otherwise SHA-1; with no pin, whatever the host presents is accepted.
     final class TrustDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
         // Mutable state is behind the lock; delegate callbacks arrive on a URLSession queue.
         private let lock = NSLock()
         private let expectedSHA1: String?
+        private let expectedSHA256: String?
         private var observedSHA1Storage: String?
+        private var observedSHA256Storage: String?
         private var pinFailureStorage: String?
 
         var observedSHA1: String? { lock.lock(); defer { lock.unlock() }; return observedSHA1Storage }
@@ -262,8 +271,9 @@ final class WebSocketWire: RFBWire, @unchecked Sendable {
         /// that as a plain "cancelled", which tells the user nothing.
         var pinFailure: String? { lock.lock(); defer { lock.unlock() }; return pinFailureStorage }
 
-        init(expectedSHA1: String?) {
+        init(expectedSHA1: String?, expectedSHA256: String? = nil) {
             self.expectedSHA1 = expectedSHA1.map { $0.uppercased().filter { $0.isHexDigit } }
+            self.expectedSHA256 = expectedSHA256.map { $0.uppercased().filter { $0.isHexDigit } }
         }
 
         func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge) async
@@ -274,18 +284,28 @@ final class WebSocketWire: RFBWire, @unchecked Sendable {
                   let leaf = chain.first else { return (.cancelAuthenticationChallenge, nil) }
             let der = SecCertificateCopyData(leaf) as Data
             let sha1 = Insecure.SHA1.hash(data: der).map { String(format: "%02X", $0) }.joined(separator: ":")
+            let sha256 = SHA256.hash(data: der).map { String(format: "%02X", $0) }.joined(separator: ":")
             // The lock verdict runs synchronously (NSLock is off limits in async contexts).
-            return evaluate(sha1: sha1, trust: trust)
+            return evaluate(sha1: sha1, sha256: sha256, trust: trust)
         }
 
-        private func evaluate(sha1: String, trust: SecTrust) -> (URLSession.AuthChallengeDisposition, URLCredential?) {
+        private func evaluate(sha1: String, sha256: String, trust: SecTrust) -> (URLSession.AuthChallengeDisposition, URLCredential?) {
             lock.lock(); defer { lock.unlock() }
             observedSHA1Storage = sha1
-            guard let expected = expectedSHA1 else { return (.useCredential, URLCredential(trust: trust)) }
-            let observed = sha1.uppercased().filter({ $0.isHexDigit })
-            guard observed == expected else {
-                pinFailureStorage = "The host's certificate (SHA-1 \(sha1)) doesn't match the saved thumbprint"
-                return (.cancelAuthenticationChallenge, nil)
+            observedSHA256Storage = sha256
+            if let expected = expectedSHA256 {
+                guard sha256.uppercased().filter({ $0.isHexDigit }) == expected else {
+                    pinFailureStorage = "The host's certificate (SHA-256 \(sha256)) doesn't match the saved thumbprint"
+                    return (.cancelAuthenticationChallenge, nil)
+                }
+                return (.useCredential, URLCredential(trust: trust))
+            }
+            if let expected = expectedSHA1 {
+                let observed = sha1.uppercased().filter({ $0.isHexDigit })
+                guard observed == expected else {
+                    pinFailureStorage = "The host's certificate (SHA-1 \(sha1)) doesn't match the saved thumbprint"
+                    return (.cancelAuthenticationChallenge, nil)
+                }
             }
             return (.useCredential, URLCredential(trust: trust))
         }

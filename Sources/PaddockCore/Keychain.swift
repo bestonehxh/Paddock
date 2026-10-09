@@ -27,8 +27,9 @@ public enum Keychain {
     // MARK: Vault
 
     /// The vault, read from the Keychain on first use (this is the one prompt).
-    private static func vault() throws -> [String: String] {
-        lock.lock(); defer { lock.unlock() }
+    /// Callers hold `lock` — `mutate` keeps it across the whole read-modify-write so two
+    /// concurrent changes can't write over each other's entry.
+    private static func vaultLocked() throws -> [String: String] {
         if let cache { return cache }
         var entries: [String: String] = [:]
         if let data = try readItem(account: vaultAccount) {
@@ -46,6 +47,11 @@ public enum Keychain {
         cache = entries
         if migrated { try? writeVault(entries) }
         return entries
+    }
+
+    private static func vault() throws -> [String: String] {
+        lock.lock(); defer { lock.unlock() }
+        return try vaultLocked()
     }
 
     private static func legacyAccounts() -> [String] {
@@ -84,8 +90,8 @@ public enum Keychain {
     }
 
     private static func mutate(_ change: (inout [String: String]) -> Void) throws {
-        var entries = try vault()
         lock.lock(); defer { lock.unlock() }
+        var entries = try vaultLocked()
         change(&entries)
         try writeVault(entries)
         cache = entries

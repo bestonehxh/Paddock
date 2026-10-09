@@ -28,8 +28,9 @@ public final class HostModel: Identifiable {
         case connecting
         case connected
         case failed(String)
-        /// The host's certificate no longer matches the pinned one.
-        case needsTrust(expected: String, actual: String)
+        /// The host's certificate no longer matches the pinned one; `hash` names the pair
+        /// shown in the review sheet ("SHA-1" or "SHA-256").
+        case needsTrust(expected: String, actual: String, hash: String)
     }
 
     private var session: VimSession?
@@ -98,7 +99,7 @@ public final class HostModel: Identifiable {
             throw PaddockError.noPassword(info.address)
         }
         let session = VimSession(host: info.address, username: info.user, password: password,
-                                 expectedThumbprint: info.thumbprint)
+                                 expectedThumbprint: info.thumbprint, expectedThumbprintSHA256: info.thumbprintSHA256)
         self.session = session
         return session
     }
@@ -115,6 +116,28 @@ public final class HostModel: Identifiable {
             let list = try await session.listVMs()
             guard !stopped, generation == pollGeneration else { return }
             vms = list
+            // Keep the pin in step with what a successful connection actually saw: a first
+            // pin for a previously unpinned host (unticked "Trust this certificate" — what the
+            // Add host sheet promises), the SHA-256 half of a SHA-1-only pin, and the SHA-1
+            // half after a SHA-256-only re-pin.
+            if let observed = session.transport.observedThumbprint {
+                var changed = false
+                if let p256 = info.thumbprintSHA256, Self.sameThumbprint(p256, observed.sha256) {
+                    if !Self.sameThumbprint(info.thumbprint ?? "", observed.sha1) {
+                        info.thumbprint = observed.sha1
+                        changed = true
+                    }
+                } else if info.thumbprintSHA256 == nil {
+                    if info.thumbprint != nil {
+                        info.thumbprintSHA256 = observed.sha256
+                    } else {
+                        info.thumbprint = observed.sha1
+                        info.thumbprintSHA256 = observed.sha256
+                    }
+                    changed = true
+                }
+                if changed { persist() }
+            }
             // The host version rarely changes: fetch the host's own properties once, not on
             // every 10-second poll (hostInfo also pulls the datastores).
             if version.isEmpty {
@@ -131,8 +154,8 @@ public final class HostModel: Identifiable {
         } catch let error as VimError {
             guard !stopped, generation == pollGeneration else { return }
             failures += 1
-            if case .certificateChanged(let expected, let actual) = error {
-                phase = .needsTrust(expected: expected, actual: actual)
+            if case .certificateChanged(let expected, let actual, let hash) = error {
+                phase = .needsTrust(expected: expected, actual: actual, hash: hash)
             } else {
                 let wasUp = phase == .connected
                 phase = .failed(sentence(for: error))
@@ -162,21 +185,28 @@ public final class HostModel: Identifiable {
 
     // MARK: Trust
 
-    /// Accept the certificate the host presents now, pin it, and try again.
+    /// Accept the certificate the host presents now, pin it, and try again. The re-pin lands
+    /// in the hash the mismatch was detected in; its partner hash fills in on the next
+    /// successful poll.
     public func trustNewCertificate() async {
-        guard case .needsTrust(_, let actual) = phase else { return }
+        guard case .needsTrust(_, let actual, let hash) = phase else { return }
+        if hash == "SHA-1" { info.thumbprint = actual } else { info.thumbprintSHA256 = actual }
         do {
             let session = try makeSession()
-            session.transport.pin(sha1: actual)
+            session.transport.pin(sha1: info.thumbprint, sha256: info.thumbprintSHA256)
         } catch {
             phase = .failed(sentence(for: error))
             return
         }
-        info.thumbprint = actual
         persist()
         phase = .connecting
         failures = 0
         await pollOnce()
+    }
+
+    /// Thumbprints compare with case and colons stripped (`AA:BB…` vs `AABB…`).
+    private static func sameThumbprint(_ a: String, _ b: String) -> Bool {
+        a.uppercased().filter(\.isHexDigit) == b.uppercased().filter(\.isHexDigit)
     }
 
     // MARK: Actions

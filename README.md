@@ -13,9 +13,9 @@ binaries. Several hosts sit in one sidebar; each VM gets the same slim tab bar.
 
 ## ⬇️ Download
 
-[![Download Paddock for macOS](https://img.shields.io/badge/Download-Paddock_1.0_%281%29_for_macOS-2ea44f?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/bestonehxh/Paddock/releases/latest)
+[![Download Paddock for macOS](https://img.shields.io/badge/Download-Paddock_1.0_%2810%29_for_macOS-2ea44f?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/bestonehxh/Paddock/releases/latest)
 
-**[Get the latest release →](https://github.com/bestonehxh/Paddock/releases/latest)** — download `Paddock-1.0-1.zip`, unzip, and drag **Paddock.app** into `Applications`.
+**[Get the latest release →](https://github.com/bestonehxh/Paddock/releases/latest)** — download `Paddock-1.0-10.zip`, unzip, and drag **Paddock.app** into `Applications`.
 
 > The build is not notarized, so macOS will warn on first launch —
 > right-click the app and choose **Open**, or allow it in System Settings › Privacy & Security.

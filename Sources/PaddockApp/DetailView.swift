@@ -13,28 +13,32 @@ struct DetailView: View {
     @State private var tab: DetailTab = .overview
 
     var body: some View {
-        if let host = model.selectedHost, let vm = model.selectedVM {
-            VStack(spacing: 0) {
-                DetailBar(host: host, vm: vm, tab: $tab)
-                Rectangle().fill(Theme.line).frame(height: 1)
-                Group {
-                    switch tab {
-                    case .overview: OverviewView(host: host, vm: vm)
-                    case .snapshots: SnapshotsView(host: host, vm: vm)
-                    case .files: FilesView(host: host, vm: vm)
-                    case .run: RunView(host: host, vm: vm)
-                    case .shell: ShellView(host: host, vm: vm)
-                    case .console: ConsoleView(host: host, vm: vm)
+        GeometryReader { geometry in
+            if let host = model.selectedHost, let vm = model.selectedVM {
+                VStack(spacing: 0) {
+                    DetailBar(host: host, vm: vm, tab: $tab)
+                        // Keep the VM tabs in the top title-bar strip at every window size.
+                        .padding(.top, -geometry.safeAreaInsets.top)
+                    Rectangle().fill(Theme.line).frame(height: 1)
+                    Group {
+                        switch tab {
+                        case .overview: OverviewView(host: host, vm: vm)
+                        case .snapshots: SnapshotsView(host: host, vm: vm)
+                        case .files: FilesView(host: host, vm: vm)
+                        case .run: RunView(host: host, vm: vm)
+                        case .shell: ShellView(host: host, vm: vm)
+                        case .console: ConsoleView(host: host, vm: vm)
+                        }
                     }
+                    // A new VM gets fresh page state: nothing from the previous VM's Run output,
+                    // snapshot selection or folder leaks across (review, 3 Oct 2026).
+                    .id(model.selection)
+                    .frame(maxHeight: .infinity)
                 }
-                // A new VM gets fresh page state: nothing from the previous VM's Run output,
-                // snapshot selection or folder leaks across (review, 3 Oct 2026).
-                .id(model.selection)
-                .frame(maxHeight: .infinity)
+                .onChange(of: model.consoleRequest) { _, _ in tab = .console }
+            } else {
+                WelcomeView()
             }
-            .onChange(of: model.consoleRequest) { _, _ in tab = .console }
-        } else {
-            WelcomeView()
         }
     }
 }
@@ -60,7 +64,7 @@ struct DetailBar: View {
         HStack(spacing: 0) {
             // The one glyph in the app (owner, 3 Oct 2026: "use a symbol for the sidebar").
             Button {
-                withAnimation(.easeOut(duration: 0.15)) { model.sidebarVisible.toggle() }
+                withAnimation(.easeOut(duration: 0.1)) { model.sidebarVisible.toggle() }
             } label: {
                 Image(systemName: model.sidebarVisible ? "sidebar.left" : "sidebar.leading")
                     .font(.system(size: 13, weight: .regular))

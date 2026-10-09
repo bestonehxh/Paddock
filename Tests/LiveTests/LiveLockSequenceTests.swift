@@ -19,7 +19,8 @@ import VimClient
 
     func snapshot(_ tag: String) async throws {
         let ticket = try await s.consoleTicket(vm: vm.ref)
-        let mks = MKSSession(url: ticket.url, expectedThumbprint: s.transport.observedThumbprint?.sha1)
+        guard let ticketURL = ticket.url else { Issue.record("unusable ticket URL"); return }
+        let mks = MKSSession(url: ticketURL, expectedThumbprint: s.transport.observedThumbprint?.sha1)
         mks.connect()
         var last: MKSFramebuffer?
         var nudged = false
@@ -42,7 +43,8 @@ import VimClient
     try await Task.sleep(for: .seconds(2))
     // 1. The console as the app opens it.
     let ticket = try await s.consoleTicket(vm: vm.ref)
-    let mks = MKSSession(url: ticket.url, expectedThumbprint: s.transport.observedThumbprint?.sha1)
+    guard let ticketURL = ticket.url else { Issue.record("unusable ticket URL"); return }
+    let mks = MKSSession(url: ticketURL, expectedThumbprint: s.transport.observedThumbprint?.sha1)
     mks.connect()
     let consumer = Task { for await e in mks.events { if case .state(let st) = e { print("state", st) } } }
     try await Task.sleep(for: .seconds(2))

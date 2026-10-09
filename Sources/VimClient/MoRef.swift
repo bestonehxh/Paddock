@@ -27,8 +27,10 @@ public enum VimError: Error, Sendable, LocalizedError {
     case transport(String)
     case httpStatus(Int)
     case malformedResponse(String)
+    case badAddress(String)
     case fault(type: String, message: String)
-    case certificateChanged(expected: String, actual: String)
+    /// `hash` names the thumbprint pair ("SHA-1" or "SHA-256"): the pin that was enforced.
+    case certificateChanged(expected: String, actual: String, hash: String)
     case taskFailed(String)
     case notConnected
     case guestOperation(String)
@@ -38,6 +40,7 @@ public enum VimError: Error, Sendable, LocalizedError {
         case .transport(let s): "Couldn't reach the host: \(s)"
         case .httpStatus(let c): "The host answered HTTP \(c)"
         case .malformedResponse(let s): "The host sent something unexpected: \(s)"
+        case .badAddress(let s): "The address \(s) isn't a host name or IP Paddock can connect to"
         case .fault(let type, let message):
             switch type {
             case "InvalidLogin": "Wrong user name or password"
@@ -52,7 +55,7 @@ public enum VimError: Error, Sendable, LocalizedError {
             case "TaskInProgress": "Another task is still running on this VM"
             default: message.isEmpty ? type : message
             }
-        case .certificateChanged(let expected, let actual):
+        case .certificateChanged(let expected, let actual, _):
             "The host's certificate changed (expected \(expected), got \(actual))"
         case .taskFailed(let s): s
         case .notConnected: "Not connected"

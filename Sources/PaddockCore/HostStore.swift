@@ -7,12 +7,17 @@ public struct StoredHost: Codable, Identifiable, Hashable, Sendable {
     public var address: String
     public var user: String
     public var thumbprint: String?
+    /// The same certificate's SHA-256, recorded once seen: the pin that decides from then on.
+    /// Older hosts.json files don't carry it; the first successful connection fills it in.
+    public var thumbprintSHA256: String?
     public var lastSeen: Date?
 
-    public init(address: String, user: String, thumbprint: String? = nil, lastSeen: Date? = nil) {
+    public init(address: String, user: String, thumbprint: String? = nil, thumbprintSHA256: String? = nil,
+                lastSeen: Date? = nil) {
         self.address = address
         self.user = user
         self.thumbprint = thumbprint
+        self.thumbprintSHA256 = thumbprintSHA256
         self.lastSeen = lastSeen
     }
 

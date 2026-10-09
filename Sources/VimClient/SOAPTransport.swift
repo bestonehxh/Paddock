@@ -5,7 +5,9 @@ import Security
 /// HTTPS to `/sdk` with the host's self-signed certificate pinned by thumbprint, the session
 /// cookie kept per transport, SOAP faults turned into `VimError.fault`.
 public final class SOAPTransport: Sendable {
-    public let baseURL: URL
+    /// nil when the host address can't form a URL (a port typed into the address field, a
+    /// space): calls then fail with `badAddress` instead of the app crashing on a force-unwrap.
+    public let baseURL: URL?
     public let host: String
     private let session: URLSession
     private let delegate: TrustDelegate
@@ -21,7 +23,10 @@ public final class SOAPTransport: Sendable {
     ///   - host: address or name of the ESXi host.
     ///   - expectedThumbprint: SHA-1 thumbprint accepted on first connection, nil to accept
     ///     whatever the host presents (the caller then reads `observedThumbprint` and pins it).
-    public init(host: String, port: Int = 443, expectedThumbprint: String?, apiVersion: String = "8.0.2.0") {
+    ///   - expectedThumbprintSHA256: the same certificate's SHA-256; once known it decides on
+    ///     its own (same certificate, stronger hash).
+    public init(host: String, port: Int = 443, expectedThumbprint: String?, expectedThumbprintSHA256: String? = nil,
+                apiVersion: String = "8.0.2.0") {
         self.host = host
         self.apiVersion = apiVersion
         var c = URLComponents()
@@ -29,8 +34,8 @@ public final class SOAPTransport: Sendable {
         c.host = host
         c.port = port == 443 ? nil : port
         c.path = "/sdk"
-        baseURL = c.url!
-        delegate = TrustDelegate(expectedSHA1: expectedThumbprint)
+        baseURL = c.url
+        delegate = TrustDelegate(expectedSHA1: expectedThumbprint, expectedSHA256: expectedThumbprintSHA256)
         let config = URLSessionConfiguration.ephemeral
         // The session cookie is handled by hand (below): Foundation's cookie jar is unreliable
         // for hosts given as bare IP addresses.
@@ -58,16 +63,17 @@ public final class SOAPTransport: Sendable {
     /// Add host sheet.
     public var observedSubject: String? { delegate.observedSubject }
 
-    /// Replaces the pinned thumbprint (after the user accepts a changed certificate).
-    public func pin(sha1: String?) { delegate.setExpected(sha1) }
+    /// Replaces the pinned thumbprints (after the user accepts a changed certificate).
+    public func pin(sha1: String?, sha256: String? = nil) { delegate.setExpected(sha1: sha1, sha256: sha256) }
 
     /// The URLSession, for file transfers that share the pinned trust (guest file URLs).
     public var urlSession: URLSession { session }
 
     /// Calls a vim25 method and returns the `<MethodResponse>` element.
     public func call(_ method: String, this: MoRef, _ arguments: [XMLOut.Element] = []) async throws -> XMLNode {
+        guard let url = baseURL else { throw VimError.badAddress(host) }
         let body = XMLOut.envelope(method: method, this: this, arguments: arguments)
-        var request = URLRequest(url: baseURL)
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("text/xml; charset=utf-8", forHTTPHeaderField: "Content-Type")
         request.setValue("\"urn:vim25/\(apiVersion)\"", forHTTPHeaderField: "SOAPAction")
@@ -111,8 +117,10 @@ public final class SOAPTransport: Sendable {
     final class TrustDelegate: NSObject, URLSessionDelegate, @unchecked Sendable {
         private let lock = NSLock()
         private var expectedSHA1: String?
-        /// The pin as given (colons kept), for the "expected" half of a mismatch message.
-        private var expectedDisplay: String?
+        private var expectedSHA256: String?
+        /// The pins as given (colons kept), for the "expected" half of a mismatch message.
+        private var expectedSHA1Display: String?
+        private var expectedSHA256Display: String?
         private var _observed: Thumbprint?
         private var _observedSubject: String?
         private var _pinFailure: VimError?
@@ -128,15 +136,19 @@ public final class SOAPTransport: Sendable {
             return f
         }
 
-        init(expectedSHA1: String?) {
+        init(expectedSHA1: String?, expectedSHA256: String? = nil) {
             self.expectedSHA1 = expectedSHA1.map(Self.normalize)
-            self.expectedDisplay = expectedSHA1.map(Self.display)
+            self.expectedSHA256 = expectedSHA256.map(Self.normalize)
+            self.expectedSHA1Display = expectedSHA1
+            self.expectedSHA256Display = expectedSHA256
         }
 
-        func setExpected(_ sha1: String?) {
+        func setExpected(sha1: String?, sha256: String?) {
             lock.lock(); defer { lock.unlock() }
             expectedSHA1 = sha1.map(Self.normalize)
-            expectedDisplay = sha1.map(Self.display)
+            expectedSHA256 = sha256.map(Self.normalize)
+            expectedSHA1Display = sha1
+            expectedSHA256Display = sha256
             _pinFailure = nil
         }
 
@@ -184,9 +196,16 @@ public final class SOAPTransport: Sendable {
             lock.lock(); defer { lock.unlock() }
             _observed = tp
             _observedSubject = subject
+            // The SHA-256 pin, once known, decides on its own: it pins the same certificate
+            // with the stronger hash.
+            if let expected = expectedSHA256 {
+                if Self.normalize(tp.sha256) == expected { return .accept }
+                _pinFailure = .certificateChanged(expected: expectedSHA256Display ?? expected, actual: tp.sha256, hash: "SHA-256")
+                return .reject
+            }
             guard let expected = expectedSHA1 else { return .accept }   // first connection: the caller pins what it sees
             if Self.normalize(tp.sha1) == expected { return .accept }
-            _pinFailure = .certificateChanged(expected: expectedDisplay ?? expected, actual: tp.sha1)
+            _pinFailure = .certificateChanged(expected: expectedSHA1Display ?? expected, actual: tp.sha1, hash: "SHA-1")
             return .reject
         }
     }

@@ -43,6 +43,13 @@ struct ConsoleView: View {
     @State private var decodedRewindImage: CGImage?
     @State private var decodedRewindIndex = -1
     @State private var lastCapture = Date.distantPast
+    /// Total PNG bytes in `rewindHistory`, maintained incrementally — re-summing the whole
+    /// array for every dropped frame made each capture O(history).
+    @State private var rewindBytes = 0
+    /// True while a PNG encode is in flight off the main thread; the next big frame waits.
+    @State private var rewindEncoding = false
+    /// Bumped whenever the history is cleared; an encode landing after that is dropped.
+    @State private var rewindGeneration = 0
 
     struct RewindFrame {
         let date: Date
@@ -64,6 +71,8 @@ struct ConsoleView: View {
         .onChange(of: model.consoleRewind) { _, on in
             if !on {
                 rewindHistory.removeAll()
+                rewindBytes = 0
+                rewindGeneration += 1
                 rewindPosition = 0
                 decodedRewindImage = nil
                 decodedRewindIndex = -1
@@ -249,7 +258,12 @@ struct ConsoleView: View {
             // over while the ticket was on its way: this ticket is simply never used.
             guard !Task.isCancelled, generation == openGeneration else { return }
             close()   // whatever connected in the meantime goes away before the new stream starts
-            let newSession = MKSSession(url: ticket.url, expectedThumbprint: host.info.thumbprint)
+            guard let ticketURL = ticket.url else {
+                state = .disconnected(reason: "The host sent a console ticket that can't be used.")
+                return
+            }
+            let newSession = MKSSession(url: ticketURL, expectedThumbprint: host.info.thumbprint,
+                                        expectedThumbprintSHA256: host.info.thumbprintSHA256)
             let backend = ConsoleBackend(key: poolKey, session: newSession)
             ConsolePool.shared.put(backend)
             attach(backend)
@@ -378,6 +392,8 @@ struct ConsoleView: View {
         fps = 0
         framesThisSecond = 0
         rewindHistory = []
+        rewindBytes = 0
+        rewindGeneration += 1
         rewindPosition = 0
         decodedRewindImage = nil
         decodedRewindIndex = -1
@@ -400,19 +416,42 @@ struct ConsoleView: View {
         // A boot log scrolls 20 lines a second: ten captures a second keeps every line
         // (review, 3 Oct 2026; one a second lost most of them).
         guard area >= Self.rewindAreaFraction, now.timeIntervalSince(lastCapture) >= 0.1 else { return }
-        lastCapture = now
-        let rep = NSBitmapImageRep(cgImage: image)
-        guard let png = rep.representation(using: .png, properties: [:]) else { return }
+        // One encode at a time, off the main thread: PNG-ing a 1080p frame costs tens of
+        // milliseconds, and ten of those a second on the main actor showed as hitching. A
+        // frame during an encode is skipped — the throttle catches up at once.
+        guard !rewindEncoding else { return }
+        rewindEncoding = true
+        let width = f.width, height = f.height, generation = rewindGeneration
+        Task {
+            let png = await Task.detached(priority: .utility) {
+                NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+            }.value
+            rewindEncoding = false
+            guard let png else { return }
+            appendRewindFrame(png: png, date: now, width: width, height: height, generation: generation)
+        }
+    }
+
+    /// Lands an encoded key frame in the history; the slider, the ring bound and the byte
+    /// count move together.
+    private func appendRewindFrame(png: Data, date: Date, width: Int, height: Int, generation: Int) {
+        guard model.consoleRewind, generation == rewindGeneration else { return }
+        lastCapture = date
         let wasLive = Int(rewindPosition) >= rewindHistory.count - 1
-        rewindHistory.append(RewindFrame(date: now, png: png, width: f.width, height: f.height))
+        rewindHistory.append(RewindFrame(date: date, png: png, width: width, height: height))
+        rewindBytes += png.count
         // Keep the ring bounded; dropping the oldest shifts what the slider points at.
         var dropped = 0
-        while rewindHistory.count - dropped > Self.rewindMaxFrames
-                || rewindHistory.dropFirst(dropped).map(\.png.count).reduce(0, +) > Self.rewindMaxBytes {
+        var droppedBytes = 0
+        while dropped < rewindHistory.count,
+              rewindHistory.count - dropped > Self.rewindMaxFrames
+                || rewindBytes - droppedBytes > Self.rewindMaxBytes {
+            droppedBytes += rewindHistory[dropped].png.count
             dropped += 1
         }
         if dropped > 0 {
             rewindHistory.removeFirst(dropped)
+            rewindBytes -= droppedBytes
             if !wasLive { rewindPosition = max(0, rewindPosition - Double(dropped)) }
         }
         rewindPosition = wasLive ? Double(rewindHistory.count - 1) : min(rewindPosition + 1, Double(rewindHistory.count - 1))
@@ -451,6 +490,10 @@ struct ConsoleView: View {
         case .clipboard(let text):
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(text, forType: .string)
+            // The Mac→guest loop must not read this as a fresh Mac-side change and carry the
+            // same text straight back.
+            lastSharedText = text
+            ignoredPasteboardCount = NSPasteboard.general.changeCount
             note = "The guest put \(text.count) characters on the Mac's clipboard."
         case .resizeRefused:
             note = "The guest kept its own screen size (it needs VMware Tools to follow the window)."
@@ -527,11 +570,9 @@ struct ConsoleView: View {
         }
         if let sync = clipboardSync {
             Task {
-                if text != lastSharedText || true {
-                    lastSharedText = text
-                    let acked = (try? await sync.push(text, timeout: 3)) ?? false
-                    if !acked { note = "The guest hasn't taken the clipboard yet; typing it instead."; _ = session?.sendText(text); return }
-                }
+                lastSharedText = text
+                let acked = (try? await sync.push(text, timeout: 3)) ?? false
+                if !acked { note = "The guest hasn't taken the clipboard yet; typing it instead."; _ = session?.sendText(text); return }
                 pressControl("v")
             }
             return
@@ -638,9 +679,10 @@ struct ConsoleView: View {
                                                  program: "C:\\Program Files\\VMware\\VMware Tools\\VMwareResolutionSet.exe",
                                                  arguments: "0 1 , 0 0 \(w) \(h)")
                 case .linux, .other:
+                    // The X authority file sits at the guest user's home, wherever that is,
+                    // and the runtime dir at their uid: resolved in the guest, not assumed.
                     _ = try await s.startProgram(vm: vm.ref, login: interactive, program: "/bin/sh",
-                                                 arguments: "-c 'xrandr -s \(w)x\(h) 2>/dev/null || xrandr --fb \(w)x\(h) 2>/dev/null'",
-                                                 environment: ["DISPLAY=:0", "XAUTHORITY=/home/\(login.username)/.Xauthority"])
+                                                 arguments: "-c 'DISPLAY=\"${DISPLAY:-:0}\"; export DISPLAY; XAUTHORITY=\"${XAUTHORITY:-$HOME/.Xauthority}\"; export XAUTHORITY; XDG_RUNTIME_DIR=\"${XDG_RUNTIME_DIR:-/run/user/$(id -u)}\"; export XDG_RUNTIME_DIR; xrandr -s \(w)x\(h) 2>/dev/null || xrandr --fb \(w)x\(h) 2>/dev/null'")
                 case .darwin:
                     break
                 }

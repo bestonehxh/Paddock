@@ -21,8 +21,6 @@ struct FilesView: View {
     @State private var newFolderName = ""
     @State private var confirmingDelete: GuestFileInfo?
     @State private var dropping = false
-    @State private var exportPath: String?
-    @State private var exportData: Data?
     /// The host + VM the state on screen belongs to. A listing or transfer captures the key
     /// before it awaits and checks it afterwards, so a slow answer for the VM shown before
     /// never lands in this one's table.
@@ -356,48 +354,40 @@ struct FilesView: View {
         return true
     }
 
-    /// Pulls the file's bytes, then opens the save panel with them.
+    /// The save panel opens first, then the file streams straight to disk: the bytes never
+    /// pile up in memory the way downloading them all before asking did.
     private func download(_ entry: GuestFileInfo) {
         guard let login = host.guestLogin(vm: vm) else { return }
+        let guestPath = isAbsoluteGuestPath(entry.path)
+            ? entry.path
+            : VimSession.join(folder, entry.name, family: vm.guestFamily)
+        let fileName = name(of: entry.path)
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = fileName
+        panel.canCreateDirectories = true
+        guard panel.runModal() == .OK, let url = panel.url else { return }
         transferDone = false
-        transferNote = "Downloading \(name(of: entry.path))…"
+        transferNote = "Downloading \(fileName)…"
         let key = vmKey
         Task {
             do {
                 let session = try host.sessionForGuest()
-                let data = try await session.download(entry.path, vm: vm.ref, login: login)
+                try await session.download(guestPath, to: url, vm: vm.ref, login: login) { got, total in
+                    Task { @MainActor in
+                        guard key == liveKey else { return }
+                        let soFar = total > 0 ? "\(bytes(got)) of \(bytes(total))" : bytes(got)
+                        transferNote = "Downloading \(fileName) · \(soFar)"
+                    }
+                }
                 guard key == liveKey else { return }
-                exportData = data
-                exportPath = name(of: entry.path)
-                transferNote = nil
-                savePanel()
+                transferNote = "Saved \(url.lastPathComponent) · done"
+                transferDone = true
             } catch {
                 guard key == liveKey else { return }
                 self.error = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                 transferNote = nil
             }
         }
-    }
-
-    /// The NSSavePanel run by hand, so the bytes downloaded above go wherever the user picks.
-    private func savePanel() {
-        let panel = NSSavePanel()
-        panel.nameFieldStringValue = exportPath ?? "file"
-        panel.canCreateDirectories = true
-        guard panel.runModal() == .OK, let url = panel.url else {
-            exportData = nil
-            exportPath = nil
-            return
-        }
-        do {
-            try exportData?.write(to: url, options: .atomic)
-            transferNote = "Saved \(url.lastPathComponent) · done"
-            transferDone = true
-        } catch {
-            self.error = error.localizedDescription
-        }
-        exportData = nil
-        exportPath = nil
     }
 
     private var newFolderSheet: some View {
@@ -430,6 +420,13 @@ struct FilesView: View {
 
     private func name(of path: String) -> String {
         GuestFileInfo(path: path, kind: .file, size: 0, modified: nil).name
+    }
+
+    private func isAbsoluteGuestPath(_ path: String) -> Bool {
+        if vm.guestFamily == .windows {
+            return path.hasPrefix("\\\\") || path.range(of: #"^[A-Za-z]:[\\/]"#, options: .regularExpression) != nil
+        }
+        return path.hasPrefix("/")
     }
 
     private func size(_ entry: GuestFileInfo) -> String {

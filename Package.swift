@@ -23,6 +23,9 @@ let package = Package(
         // Against the lab ESXi only (PADDOCK_HOST / PADDOCK_USER / PADDOCK_PASS); skipped otherwise.
         .testTarget(name: "LiveTests", dependencies: ["VimClient", "MKSClient", "PaddockCore"]),
         .testTarget(name: "PaddockCoreTests", dependencies: ["PaddockCore"]),
+        // The in-app updater (Sources/PaddockApp/Update): version/tag rules, signatures, the
+        // install helper run for real in a scratch folder. No network.
+        .testTarget(name: "PaddockAppTests", dependencies: ["PaddockApp"]),
     ],
     swiftLanguageModes: [.v6]
 )

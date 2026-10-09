@@ -56,7 +56,7 @@ import VimClient
     #expect(host.lastSeenLine?.contains("last seen") == true)
     #expect(host.problemLine == "Couldn't reach the host: no route")
     #expect(host.subtitle == "0 VMs")
-    host.phase = .needsTrust(expected: "AA", actual: "BB")
+    host.phase = .needsTrust(expected: "AA", actual: "BB", hash: "SHA-1")
     #expect(host.problemLine?.contains("certificate") == true)
     try? FileManager.default.removeItem(at: dir)
 }
@@ -69,6 +69,23 @@ import VimClient
     let store = HostStore(directory: dir)
     try Data("not json".utf8).write(to: store.url)
     #expect(throws: PaddockError.self) { try store.load() }
+    try? FileManager.default.removeItem(at: dir)
+}
+
+/// A hosts.json written before the SHA-256 field decodes with thumbprintSHA256 nil; the first
+/// successful connection fills it in.
+@Test func legacyHostsFileDecodes() throws {
+    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("paddock-store-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    let store = HostStore(directory: dir)
+    let legacy = """
+    [{"address":"192.0.2.4","lastSeen":"2026-10-03T06:36:59Z","thumbprint":"AA:BB:CC","user":"root"}]
+    """
+    try Data(legacy.utf8).write(to: store.url)
+    let hosts = try store.load()
+    #expect(hosts.count == 1)
+    #expect(hosts[0].thumbprint == "AA:BB:CC")
+    #expect(hosts[0].thumbprintSHA256 == nil)
     try? FileManager.default.removeItem(at: dir)
 }
 

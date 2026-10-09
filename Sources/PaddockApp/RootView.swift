@@ -26,18 +26,21 @@ struct RootView: View {
                                 dragStart = value.translation.width
                             }.onEnded { _ in dragStart = 0 })
                     }
+                    // The sidebar slides out/in while the detail area resizes — one motion with
+                    // the toggle, not a disappear-then-reflow (owner: "ต้องทำพร้อมกับการย่อขยาย").
+                    .transition(.move(edge: .leading).combined(with: .opacity))
             }
             DetailView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.background.ignoresSafeArea())
         }
-        .ignoresSafeArea(.container, edges: .top)   // the content owns the strip where the title bar was
-        // Full screen hides the traffic lights: HOSTS and the bar move up (owner, 3 Oct 2026).
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { _ in
-            model.windowFullScreen = true
+        // Start the inset change with macOS's full-screen transition. Waiting for "did"
+        // leaves HOSTS below the traffic lights until the window animation has finished.
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.willEnterFullScreenNotification)) { _ in
+            withAnimation(.easeInOut(duration: 0.25)) { model.windowFullScreen = true }
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { _ in
-            model.windowFullScreen = false
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.willExitFullScreenNotification)) { _ in
+            withAnimation(.easeInOut(duration: 0.25)) { model.windowFullScreen = false }
         }
         // Background console streams follow the VMs: a VM that stopped running loses its stream.
         .onReceive(Timer.publish(every: 10, on: .main, in: .common).autoconnect()) { _ in
@@ -56,7 +59,7 @@ struct RootView: View {
         // ⌘\ anywhere in the window.
         .background {
             Button("Toggle Sidebar") {
-                withAnimation(.easeOut(duration: 0.15)) { model.sidebarVisible.toggle() }
+                withAnimation(.easeOut(duration: 0.1)) { model.sidebarVisible.toggle() }
             }
             .keyboardShortcut("\\", modifiers: .command)
             .accessibilityHidden(true)

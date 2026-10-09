@@ -130,6 +130,22 @@ extension VimSession {
         return data
     }
 
+    /// Downloads a guest file's bytes from `offset` on. The host may ignore the Range header
+    /// and answer with the whole file — `partial` says which happened, so callers diff the
+    /// front themselves in that case. 416 (offset past the end) comes back as an empty whole
+    /// file: the caller resets its offset and starts over.
+    public func download(_ guestPath: String, from offset: Int64, vm: MoRef, login: GuestLogin) async throws -> (data: Data, partial: Bool) {
+        let r = try await call("InitiateFileTransferFromGuest", this: await fileManager(), [.ref("vm", vm), auth(login), .text("guestFilePath", guestPath)])
+        guard let urlString = r["returnval"]?.string("url") else { throw VimError.malformedResponse("download URL") }
+        var request = URLRequest(url: try transferURL(urlString))
+        if offset > 0 { request.setValue("bytes=\(offset)-", forHTTPHeaderField: "Range") }
+        let (data, response) = try await transport.urlSession.data(for: request)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        if status == 416 { return (data: Data(), partial: false) }
+        guard (200..<300).contains(status) else { throw VimError.guestOperation("Download failed (HTTP \(status))") }
+        return (data, status == 206)
+    }
+
     /// Downloads a guest file to a local path.
     public func download(_ guestPath: String, to local: URL, vm: MoRef, login: GuestLogin,
                          progress: (@Sendable (Int64, Int64) -> Void)? = nil) async throws {
@@ -325,9 +341,10 @@ extension VimSession {
             arguments = "-c 'pbcopy < \"\(path)\"; rm -f \"\(path)\"'"
         default:
             program = "/bin/sh"
-            // Wayland first, then X11; the display of the console session.
-            arguments = "-c 'if command -v wl-copy >/dev/null 2>&1; then wl-copy < \"\(path)\"; elif command -v xclip >/dev/null 2>&1; then xclip -selection clipboard -i \"\(path)\"; elif command -v xsel >/dev/null 2>&1; then xsel --clipboard --input < \"\(path)\"; else exit 127; fi; rm -f \"\(path)\"'"
-            env = ["DISPLAY=:0", "WAYLAND_DISPLAY=wayland-0", "XDG_RUNTIME_DIR=/run/user/1000"]
+            // Wayland first, then X11. The display comes from the guest session, not from
+            // here: Tools passes on almost no environment, and the runtime dir belongs to
+            // the guest user's own uid, not a hard-coded 1000.
+            arguments = "-c 'DISPLAY=\"${DISPLAY:-:0}\"; WAYLAND_DISPLAY=\"${WAYLAND_DISPLAY:-wayland-0}\"; XDG_RUNTIME_DIR=\"${XDG_RUNTIME_DIR:-/run/user/$(id -u)}\"; export DISPLAY WAYLAND_DISPLAY XDG_RUNTIME_DIR; if command -v wl-copy >/dev/null 2>&1; then wl-copy < \"\(path)\"; elif command -v xclip >/dev/null 2>&1; then xclip -selection clipboard -i \"\(path)\"; elif command -v xsel >/dev/null 2>&1; then xsel --clipboard --input < \"\(path)\"; else exit 127; fi; rm -f \"\(path)\"'"
         }
         let pid = try await startProgram(vm: vm, login: interactive, program: program, arguments: arguments, environment: env)
         if let p = try await waitForProcess(pid, vm: vm, login: interactive, timeout: 60), let code = p.exitCode, code != 0 {

@@ -34,6 +34,10 @@ struct AddHostSheet: View {
                         Text(probe.thumbprintSHA1)
                             .font(Theme.mono).foregroundStyle(Theme.ink).textSelection(.enabled)
                     }
+                    SheetField("SHA-256 thumbprint", note: "The same certificate, the stronger hash: once Paddock has seen it, this is the match it requires.") {
+                        Text(probe.thumbprintSHA256)
+                            .font(Theme.mono).foregroundStyle(Theme.ink).textSelection(.enabled)
+                    }
                     Toggle("Trust this certificate and warn if it changes", isOn: $trust)
                         .toggleStyle(.quiet)
                     if !trust {

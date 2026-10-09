@@ -50,13 +50,25 @@ public final class XMLNode: @unchecked Sendable {
         return nil
     }
 
-    /// Parses ISO 8601 with or without fractional seconds (`2026-10-03T06:36:59.472087Z`).
-    public static func parseDate(_ s: String) -> Date? {
+    // Shared, behind a lock: parseDate runs for every polled property on several threads, and
+    // building a formatter per call showed up in profiles of a busy host.
+    private static let dateLock = NSLock()
+    private nonisolated(unsafe) static let fractionalDateFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let d = f.date(from: s) { return d }
+        return f
+    }()
+    private nonisolated(unsafe) static let wholeSecondDateFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime]
-        return f.date(from: s)
+        return f
+    }()
+
+    /// Parses ISO 8601 with or without fractional seconds (`2026-10-03T06:36:59.472087Z`).
+    public static func parseDate(_ s: String) -> Date? {
+        dateLock.lock(); defer { dateLock.unlock() }
+        if let d = fractionalDateFormatter.date(from: s) { return d }
+        return wholeSecondDateFormatter.date(from: s)
     }
 
     /// Parses a document; throws on malformed input.
@@ -88,6 +100,12 @@ public final class XMLNode: @unchecked Sendable {
 
         func parser(_ parser: XMLParser, foundCharacters string: String) {
             stack.last?.append(text: string)
+        }
+
+        func parser(_ parser: XMLParser, foundCDATA CDATABlock: Data) {
+            // vim25 responses carry text in plain nodes, but a server that wraps text in
+            // CDATA means the same thing: don't silently drop it.
+            stack.last?.append(text: String(decoding: CDATABlock, as: UTF8.self))
         }
     }
 }
